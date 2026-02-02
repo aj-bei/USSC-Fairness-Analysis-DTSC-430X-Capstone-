@@ -1,7 +1,9 @@
 
+# ignore all files in the data directory except placeholder.txt
 data/*
 !data/placeholder.txt
 
+# ignore virtual environment directory
 .venv/
 
 
