@@ -5,5 +5,5 @@ data/*
 
 # ignore virtual environment directory
 .venv/
-
+scripts/__pycache__/
 
