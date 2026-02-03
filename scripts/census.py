@@ -24,7 +24,7 @@ def get_county_data_acs5(
     Args:
         year (int): The year of the ACS data to retrieve.
         api_key (str): Your U.S. Census API key.
-        var_codes (List[str]): List of variable codes to retrieve.
+        var_codes (List[str]): List of variable codes to retrieve. The variable codes can be found at https://api.census.gov/data/{year}/acs/acs5/profile/variables.html or https://api.census.gov/data/{year}/acs/acs5/subject/variables.html
         var_names (List[str]): List of desired variable names corresponding to the variable codes.
         timeout (int): Timeout for the API request in seconds. Default is 60 seconds.
     """
@@ -62,7 +62,7 @@ def get_county_data_all_yrs(
         start_yr (int): The starting year of the ACS data to retrieve.
         end_yr (int): The ending year of the ACS data to retrieve.
         api_key (str): Your U.S. Census API key.
-        var_codes (List[str]): List of variable codes to retrieve.
+        var_codes (List[str]): List of variable codes to retrieve. The variable codes can be found at https://api.census.gov/data/{year}/acs/acs5/profile/variables.html or https://api.census.gov/data/{year}/acs/acs5/subject/variables.html
         var_names (List[str]): List of desired variable names corresponding to the variable codes.
         filename (str): Optional. If provided, saves the combined DataFrame to this CSV file.
     """
