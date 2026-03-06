@@ -559,8 +559,7 @@
       "32": "National Defense Offenses",
       "33": "Antitrust Violations",
       "34": "Food and Drug Offenses",
-      "35": "Traffic Violations and Other Offenses (Includes Other Drug, Environmental, Firearms, Miscellaneous Property Crimes, Violent, Traffic offenses, Obscenity, and Prostitution) (Includes OFFTYPE2= 43,44)",
-      ".": "Missing"
+      "35": "Traffic Violations and Other Offenses (Includes Other Drug, Environmental, Firearms, Miscellaneous Property Crimes, Violent, Traffic offenses, Obscenity, and Prostitution) (Includes OFFTYPE2= 43,44)"
     },
     "OFFVCT1-OFFVCTX and OFFVCTHI OFFVCS1-OFFVCSX and OFFVCSHI OFFVCR1-OFFVCRX and OFFVCRHI OFFVCC1-OFFVCCX and OFFVCCHI OFFVCU1-OFFVCUX and OFFVCUHI":{
       "0": "No Adjustment",
@@ -906,13 +905,11 @@
     "SAFE":{
     "0": "Not Applied",
     "1": "Received -2 levels for SV SOC in §2D1.1/§2D1.11 (Guideline Safety Valve)",
-    "2": "Received statutory safety valve per 18 U.S.C. §3553(f) but did not receive SV SOC Reduction in §2D1.1/§2D1.11",
-    ".": "Inapplicable because not a drug case"
+    "2": "Received statutory safety valve per 18 U.S.C. §3553(f) but did not receive SV SOC Reduction in §2D1.1/§2D1.11"
     },
     "SAFETY":{
       "0": "Safety Valve Not Applied",
-      "1": "Safety Valve Applied",
-      ".": "Missing/Inapplicable"
+      "1": "Safety Valve Applied"
     },
     "SENSPLT0":{
       "0": "Probation", #
