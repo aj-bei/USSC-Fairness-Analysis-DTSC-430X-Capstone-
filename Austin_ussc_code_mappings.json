@@ -374,26 +374,26 @@
     },
     "FINE R=AMTFINEC":{
       "0": "No Fine",
-      "9,999,999,997": "Fine Ordered, Amount Not Specified" #
+      "9,999,999,997": "Fine Ordered, Amount Not Specified" # Range 1 - 9,999,999,997
     },
     "FINEMAX": {
-      "0": "No Fine"#
+      "0": "No Fine" # Range 1 - 9,999,999,999
     },
     "FINEMIN": {
-      "0": "No Fine"#
+      "0": "No Fine" # Range 1 - 9,999,999,999
     },
     "FSASV":{
       "0": "No First Step Act Safety Valve indicated",
       "1": "First Step Act Safety Valve indicated"
     },
     "GLMAX":{
-      "9996": "Life Imprisonment (this used to be code 996)"#
+      "9996": "Life Imprisonment (this used to be code 996)" # Range 6 - 9996 
     },
     "GLMIN":{
-      "9996": "Life Imprisonment (this used to be code 996)"#
+      "9996": "Life Imprisonment (this used to be code 996)" # Range 0 - 9996 
     },
     "HRCOMSRV":{
-      "9996": "Life", #
+      "9996": "Life", # Range 0 - 9996
       "9997": "Community Service Ordered, but Term Not Specified"
     },
     "INNOPL1-INNOPLX":{
@@ -423,15 +423,15 @@
       "1": "Yes"
     },
     "MNTHDEPT":{
-     #
+     # Range 0.01 - 9997
     },
     "MOCOMCON R=COMDUM":{
-      "0": "No Community Confinement Ordered",
-      "97": "Community Confinement Ordered, but No Term Specified" #
+      "0": "No Community Confinement Ordered", # Range 0 - 97
+      "97": "Community Confinement Ordered, but No Term Specified"
     },
     "MOHOMDET R=HOMDUM":{
-      "0": "No Home Detention Ordered",
-      "97": "Home Detention Ordered, but No Term Specified" #
+      "0": "No Home Detention Ordered",  # Range 0 - 97
+      "97": "Home Detention Ordered, but No Term Specified"
     },
     "MOINTCON R=INTDUM":{
       "0": "No Intermittent Confinement Ordered",
@@ -445,7 +445,18 @@
       "0": "Adjustment Not Applied"
     },
     "MONCIRC R=CIRCDIST":{
-      #
+      "0": "Circuit Court 1",
+      "1": "Circuit Court 2",
+      "2": "Circuit Court 3",
+      "3": "Circuit Court 4",
+      "4": "Circuit Court 5",
+      "5": "Circuit Court 6", # This is what I decided to do with it. range 0 - 11; 12 regional judicial federal courts. Good?
+      "6": "Circuit Court 7",
+      "7": "Circuit Court 8",
+      "8": "Circuit Court 9",
+      "9": "Circuit Court 10",
+      "10": "Circuit Court 11",
+      "11": "Circuit Court 12"
     },
     "MONSEX":{
       "0": "Male",
@@ -463,11 +474,11 @@
       "6": "Other"
     },
     "NOCOUNTS":{
-     #
+     # Range 1 - 999
     },
     "NUMDEPEN":{
       "0": "No Dependents",
-      "97": "Some Dependents, Exact Number Unknown" #
+      "97": "Some Dependents, Exact Number Unknown" # Range 1 - 96
     },
     "OBST":{
       "0": "No Adjustment",
@@ -561,8 +572,8 @@
       "1": "Yes (includes TOTPRISN= 9992 thru 9997)"
     },
     "PROBATN R=PROBDUM":{
-      "0": "No Probation Ordered",
-      "997": "Probation Ordered, But No Term Specified" #
+      "0": "No Probation Ordered", # Range 0 - 997
+      "997": "Probation Ordered, But No Term Specified" 
     },
     "RANGEPT":{
       "1": "Guideline Minimum",
@@ -573,7 +584,7 @@
       "6": "Guideline Min/Max Are Equal"
     },
     "REAS1-REASX":{
-      "0": "No reason given",
+      "0": "No reason given", # At the end of everyline, there is a direction* code. B = both above and below range cases, D = Departure, U = Upward Departure. Get rid of them or keep?
       "1": "Nature and circumstances of offense and history and characteristics of defendant (18 U.S.C. 3553(a)(1)) B",
       "2": "Reflect seriousness of offense, promote respect for law, provide just punishment for the offense (18 U.S.C. 3553(a)(2)(A)) B",
       "3": "Afford adequate deterrence to criminal conduct (18 U.S.C. 3553(a)(2)(B)) B",
@@ -875,7 +886,7 @@
     "1213": "Charitable Service/Good Works (aggregated reason) D"
     },
     "RETEXT1-RETEXTX":{
-      ##
+      # Text Field
     },
     "SAFE":{
     "0": "Not Applied",
@@ -887,7 +898,7 @@
       "1": "Safety Valve Applied"
     },
     "SENSPLT0":{
-      "0": "Probation", #
+      "0": "Probation", # Range 0 - 9997
       "470": "Life (Note that in earlier data years, the Commission’s data collapsed all values GE 470 to 470. Use TOTPRISN to find “LIFE” cases only over time)"
     },
     "SENTIMP":{
@@ -927,14 +938,14 @@
       "7": "Government Sponsored Variance",
       "8": "Below Range Variance"
     },
-    "SENTTOT":{
-      "470": "Life (Note that in earlier data years, the Commission’s data collapsed all values GE 470 to 470. Use TOTPRISN to find “LIFE” cases only over time)" #
+    "SENTTOT":{ # Range 0.01 - 9997
+      "470": "Life (Note that in earlier data years, the Commission’s data collapsed all values GE 470 to 470. Use TOTPRISN to find “LIFE” cases only over time)" 
     },
     "SENTYR":{
-      #
+      # Fiscal Years; most likely no need for change as its just 2005 - 2023
     },
     "SEXMIN":{
-      "9996": "Life Imprisonment (this used to be code 996)" #
+      "9996": "Life Imprisonment (this used to be code 996)" # Range 0 - 9996 months
     },
     "SOURCES":{
       "1": "Information Represents Known Court Findings: (a) SOR Accepts PSR (b) SOR Differs From PSR, SOR is Coded (c) Court’s Factual Findings Unknown, SOR Criminal History Category and Offense Level Match PSR or SOR Guideline Range Matches PSR Guideline Range",
@@ -948,23 +959,23 @@
     },
     "SUPREL R=SUPRDUM":{
       "0": "No Supervised Release Ordered",
-      "996": "Life Term Ordered", #
+      "996": "Life Term Ordered", # Range 0 - 997
       "997": "Supervised Release Ordered, But No Term Specified"
     },
     "TIMSERVC":{
-      "997": "Time Served, Amount Unknown" #
+      "997": "Time Served, Amount Unknown" # Range 0 - 990 months
     },
     "TIMSERVD":{
-      "997": "Time Served, Amount Unknown" #
+      "997": "Time Served, Amount Unknown" # Range 0 - 990 days
     },
     "TIMSERVM":{
-      "997": "Time Served, Amount Unknown" #
+      "997": "Time Served, Amount Unknown" # Range 0 - 990 months
     },
     "TOTCHPTS":{
-      "0": "None" #
+      "0": "None" # Range 0 - 99
     },
     "TOTDAYS R=DAYSDUM":{
-      "0": "None" #
+      "0": "None" # Range 0 - 990
     },
     "TOTPRISN R=PRISDUM":{
       "0": "No Prison/<1 Month Ordered",
@@ -974,7 +985,7 @@
       "9998": "Death Penalty (These cases are screened out of datafile after FY06)"
     },
     "TOTREST R=AMTREST":{
-      "0": "None", #
+      "0": "None", # Range 0 - 9,999,999,997
       "9,999,999,997": "Restitution Ordered, Amount Not Specified"
     },
     "TYPEMONY":{
@@ -991,10 +1002,10 @@
       "77": "Other Unique Sentence"
     },
     "TYPEOTTX":{
-      ##
+      # Text Field
     },
     "USSCIDN":{
-      ###
+      # Unique ID with range of 7 numbers
     },
     "XCRHISSR":{
         "1": "Criminal History Category I",
@@ -1005,7 +1016,7 @@
         "6": "Criminal History Category VI"
     },
     "XFOLSOR":{ 
-      #
+      # Range 1 - 99
     },
     "ZONE":{
       "A": "Zone A",
