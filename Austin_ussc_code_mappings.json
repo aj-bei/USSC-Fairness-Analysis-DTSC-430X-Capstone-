@@ -366,44 +366,35 @@
     },
     "ENCRYPT1": {
       "0": "No",
-      "1": "Yes",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "1": "Yes"
     },
     "ENCRYPT2": {
       "0": "No",
-      "1": "Yes",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "1": "Yes"
     },
     "FINE R=AMTFINEC":{
       "0": "No Fine",
-      "9,999,999,997": "Fine Ordered, Amount Not Specified",#
-      "ꞏ": "Missing or Indeterminable" 
+      "9,999,999,997": "Fine Ordered, Amount Not Specified" #
     },
     "FINEMAX": {
-      "0": "No Fine",
-      "ꞏ": "Missing or Indeterminable"#
+      "0": "No Fine"#
     },
     "FINEMIN": {
-      "0": "No Fine",
-      "ꞏ": "Missing or Indeterminable"#
+      "0": "No Fine"#
     },
     "FSASV":{
       "0": "No First Step Act Safety Valve indicated",
-      "1": "First Step Act Safety Valve indicated",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "1": "First Step Act Safety Valve indicated"
     },
     "GLMAX":{
-      "9996": "Life Imprisonment (this used to be code 996)",#
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "9996": "Life Imprisonment (this used to be code 996)"#
     },
     "GLMIN":{
-      "9996": "Life Imprisonment (this used to be code 996)",#
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "9996": "Life Imprisonment (this used to be code 996)"#
     },
     "HRCOMSRV":{
       "9996": "Life", #
-      "9997": "Community Service Ordered, but Term Not Specified",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "9997": "Community Service Ordered, but Term Not Specified"
     },
     "INNOPL1-INNOPLX":{
       "1": "Based on gov 5K1.1 motion",
@@ -416,8 +407,7 @@
     },
     "INOUT":{
       "0": "Received Prison Sentence",
-      "1": "Received Non-Prison Sentence",
-      "ꞏ": "Missing (Includes Cases Not Eligible for Non-Prison Sentences)"
+      "1": "Received Non-Prison Sentence"
     },
     "INPLEA1-INPLEAX": {
       "1": "Based on govt 5K1.1 motion",
@@ -430,69 +420,59 @@
     },
     "INTDUM":{
       "0": "No",
-      "1": "Yes",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "1": "Yes"
     },
     "MNTHDEPT":{
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+     #
     },
     "MOCOMCON R=COMDUM":{
       "0": "No Community Confinement Ordered",
-      "97": "Community Confinement Ordered, but No Term Specified", #
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "97": "Community Confinement Ordered, but No Term Specified" #
     },
     "MOHOMDET R=HOMDUM":{
       "0": "No Home Detention Ordered",
-      "97": "Home Detention Ordered, but No Term Specified", #
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "97": "Home Detention Ordered, but No Term Specified" #
     },
     "MOINTCON R=INTDUM":{
       "0": "No Intermittent Confinement Ordered",
-      "97": "Intermittent Confinement Ordered, but No Term Specified",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "97": "Intermittent Confinement Ordered, but No Term Specified"
     },
     "MONACCEP":{
       "-4": "Applied (Not in USSG Manual)",
       "-3": "Adjustment Applied",
       "-2": "Adjustment Applied",
       "-1": "Applied (Not in USSG Manual)",
-      "0": "Adjustment Not Applied",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" 
+      "0": "Adjustment Not Applied"
     },
     "MONCIRC R=CIRCDIST":{
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+      #
     },
     "MONSEX":{
       "0": "Male",
       "1": "Female",
-      "2": "Other (Added in FY2024)",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "2": "Other (Added in FY2024)"
     },
     "NEWCNVTN":{
        "0": "Plea",
-       "1": "Trial",
-       "ꞏ": "Missing, Indeterminable, or Inapplicable"
+       "1": "Trial"
     },
     "NEWRACE":{
       "1": "White",
       "2": "Black",
       "3": "Hispanic",
-      "6": "Other",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "6": "Other"
     },
     "NOCOUNTS":{
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+     #
     },
     "NUMDEPEN":{
       "0": "No Dependents",
-      "97": "Some Dependents, Exact Number Unknown",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+      "97": "Some Dependents, Exact Number Unknown" #
     },
     "OBST":{
       "0": "No Adjustment",
       "1": "Adjustment (Not in Guidelines)",
-      "2": "Adjustment Applied",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "2": "Adjustment Applied"
     },
     "OFFGUIDE":{
       "1": "Administration of Justice",
@@ -565,8 +545,7 @@
       "0": "No Adjustment",
       "2": "Adjustment Applied (Not in Guidelines)",
       "3": "Adjustment Applied (See GL Manual for specifics)",
-      "6": "Adjustment Applied (See GL Manual for specifics)",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "6": "Adjustment Applied (See GL Manual for specifics)"
     },
     "POOFFICE":{
       "BLANK": "Missing" ##
@@ -575,18 +554,15 @@
       "1": "In Custody",
       "2": "Out on Bail/Bond",
       "3": "Released on Own Recognizance",
-      "4": "Other",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "4": "Other"
     },
     "PRISDUM":{
       "0": "No",
-      "1": "Yes (includes TOTPRISN= 9992 thru 9997)",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "1": "Yes (includes TOTPRISN= 9992 thru 9997)"
     },
     "PROBATN R=PROBDUM":{
       "0": "No Probation Ordered",
-      "997": "Probation Ordered, But No Term Specified", #
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "997": "Probation Ordered, But No Term Specified" #
     },
     "RANGEPT":{
       "1": "Guideline Minimum",
@@ -594,8 +570,7 @@
       "3": "Midpoint of Range",
       "4": "Upper Half of Range",
       "5": "Guideline Maximum",
-      "6": "Guideline Min/Max Are Equal",
-      "ꞏ": "Missing/Sentenced Outside the Guideline Range/Logical Calculation Issues"
+      "6": "Guideline Min/Max Are Equal"
     },
     "REAS1-REASX":{
       "0": "No reason given",
@@ -913,16 +888,14 @@
     },
     "SENSPLT0":{
       "0": "Probation", #
-      "470": "Life (Note that in earlier data years, the Commission’s data collapsed all values GE 470 to 470. Use TOTPRISN to find “LIFE” cases only over time)",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "470": "Life (Note that in earlier data years, the Commission’s data collapsed all values GE 470 to 470. Use TOTPRISN to find “LIFE” cases only over time)"
     },
     "SENTIMP":{
      "0": "No Prison/Probation (Fine Only)",
      "1": "Prison Only (No Alternatives)",
      "2": "Prison + Confinement Conditions (Alternatives, Including Zone C Split Sentences)",
      "3": "Probation + Confinement Conditions (Alternatives)",
-     "4": "Probation Only",
-     "ꞏ": "Missing, Indeterminable, or Inapplicable"
+     "4": "Probation Only"
     },
     "SENTMON":{
       "1": "January",
@@ -941,8 +914,7 @@
     "SENTPTS":{
       "0": "None",
       "1": "Adjustment Applied (Only Valid Starting in AMENDYR 2023)",
-      "2": "Adjustment Applied (Only Valid Prior to AMENDYR 2023)",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "2": "Adjustment Applied (Only Valid Prior to AMENDYR 2023)"
     },
     "SENTRNGE":{
       "0": "Within Range",
@@ -953,19 +925,16 @@
       "5": "Downward Departure",
       "6": "Above Range Variance",
       "7": "Government Sponsored Variance",
-      "8": "Below Range Variance",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "8": "Below Range Variance"
     },
     "SENTTOT":{
-      "470": "Life (Note that in earlier data years, the Commission’s data collapsed all values GE 470 to 470. Use TOTPRISN to find “LIFE” cases only over time)",
-    "ꞏ": "Missing, Indeterminable, Inapplicable, or Probation" #
+      "470": "Life (Note that in earlier data years, the Commission’s data collapsed all values GE 470 to 470. Use TOTPRISN to find “LIFE” cases only over time)" #
     },
     "SENTYR":{
       #
     },
     "SEXMIN":{
-      "9996": "Life Imprisonment (this used to be code 996)",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+      "9996": "Life Imprisonment (this used to be code 996)" #
     },
     "SOURCES":{
       "1": "Information Represents Known Court Findings: (a) SOR Accepts PSR (b) SOR Differs From PSR, SOR is Coded (c) Court’s Factual Findings Unknown, SOR Criminal History Category and Offense Level Match PSR or SOR Guideline Range Matches PSR Guideline Range",
@@ -980,56 +949,46 @@
     "SUPREL R=SUPRDUM":{
       "0": "No Supervised Release Ordered",
       "996": "Life Term Ordered", #
-      "997": "Supervised Release Ordered, But No Term Specified",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "997": "Supervised Release Ordered, But No Term Specified"
     },
     "TIMSERVC":{
-      "997": "Time Served, Amount Unknown",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+      "997": "Time Served, Amount Unknown" #
     },
     "TIMSERVD":{
-      "997": "Time Served, Amount Unknown",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+      "997": "Time Served, Amount Unknown" #
     },
     "TIMSERVM":{
-      "997": "Time Served, Amount Unknown",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+      "997": "Time Served, Amount Unknown" #
     },
     "TOTCHPTS":{
-      "0": "None",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable" #
+      "0": "None" #
     },
     "TOTDAYS R=DAYSDUM":{
-      "0": "None", #
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "0": "None" #
     },
     "TOTPRISN R=PRISDUM":{
       "0": "No Prison/<1 Month Ordered",
       "9992": "<1 Day of Prison (# hrs)",
       "9996": "Life Imprisonment",
       "9997": "Prison Ordered, But No Term Specified",
-      "9998": "Death Penalty (These cases are screened out of datafile after FY06)",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "9998": "Death Penalty (These cases are screened out of datafile after FY06)"
     },
     "TOTREST R=AMTREST":{
       "0": "None", #
-      "9,999,999,997": "Restitution Ordered, Amount Not Specified",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "9,999,999,997": "Restitution Ordered, Amount Not Specified"
     },
     "TYPEMONY":{
       "1": "No Fine/Cost of Supervision, Nor Restitution Ordered",
       "2": "Restitution Ordered, No Fine/Cost of Supervision",
       "3": "Fine/Cost of Supervision Ordered, No Restitution",
-      "4": "Both Fine/Cost of Supervision and Restitution Ordered",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "4": "Both Fine/Cost of Supervision and Restitution Ordered"
     },
     "TYPEOTHS":{
       "0": "No Other Type",
       "1": "Suspended Prison Term",
       "2": "Pay Cost of Prosecution",
       "3": "Denial of Federal Benefits",
-      "77": "Other Unique Sentence",
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+      "77": "Other Unique Sentence"
     },
     "TYPEOTTX":{
       ##
@@ -1043,11 +1002,10 @@
         "3": "Criminal History Category III",
         "4": "Criminal History Category IV",
         "5": "Criminal History Category V",
-        "6": "Criminal History Category VI",
-        "ꞏ": "Missing, Indeterminable, or Inapplicable"
+        "6": "Criminal History Category VI"
     },
-    "XFOLSOR":{ #
-      "ꞏ": "Missing, Indeterminable, or Inapplicable"
+    "XFOLSOR":{ 
+      #
     },
     "ZONE":{
       "A": "Zone A",
