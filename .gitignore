@@ -1,7 +1,8 @@
 
-# ignore all files in the data directory except placeholder.txt
+# ignore all files in the data directory except placeholder.txt and ussc_code_mappings.json
 data/*
 !data/placeholder.txt
+!data/ussc_code_mappings.json
 
 # ignore virtual environment directory
 .venv/
