@@ -3,13 +3,21 @@
 
     "AGE": {},  
     "ACCAP": {},  
-    "ACCGDLN": {
-      "0": "Court DOES NOT Acpt. GDLNS",
-      "1": "Court DOES Accept GDLNS",
-      "2": "Accepts GDLNS with Changes",
-      "8": "No PSR Ordered/Missing"
-    },
     "ACCTRESP": {},
+    "BOOKERCD": {
+      "0": "Within Range",
+      "1": "Upward Departure",
+      "2": "Upward Departure w/Booker",
+      "3": "Above Range w/Booker",
+      "4": "Remaining Above Range",
+      "5": "5K1.1/Substantial Assistance",
+      "6": "Early Disposition/5K3.1",
+      "7": "Government Sponsored - Below Range",
+      "8": "Downward Departure",
+      "9": "Downward Departure w/Booker",
+      "10": "Below Range w/Booker",
+      "11": "Remaining Below Range"
+    },
     "COADJLEV" : {},
     "CRIMHIST": {},
     "CAROFFAP" : {}, 
@@ -407,7 +415,6 @@
       "4": "Plea Agreement which cites reason for departure which court finds to be justified",
       "5": "Plea Agreement which states govt will NOT oppose defense motion for departure"
     },
-    "MNTHDEPT":{},  
     "MOCOMCON":{
       "97": "Unspecified Term"
     },
@@ -417,7 +424,6 @@
     "MOINTCON":{
       "97": "Unspecified Term" 
     },
-    "MONCIRC":{}, 
     "MONSEX":{  
       "0": "Male",
       "1": "Female",
@@ -502,7 +508,6 @@
       "35": "Traffic Violations and Other Offenses (Includes Other Drug, Environmental, Firearms, Miscellaneous Property Crimes, Violent, Traffic offenses, Obscenity, and Prostitution) (Includes OFFTYPE2= 43,44)"
     },
     "OFFV":{},
-    "POOFFICE":{}, 
     "PRESENT":{
       "1": "In Custody",
       "2": "Bail/Bond",
@@ -512,14 +517,6 @@
     "PRISDUM":{}, 
     "PROBATN":{
       "997": "Unspecified Term"
-    },
-    "RANGEPT":{
-      "1": "Guideline Minimum",
-      "2": "Lower Half of Range",
-      "3": "Midpoint of Range",
-      "4": "Upper Half of Range",
-      "5": "Guideline Maximum",
-      "6": "Guideline Min/Max Are Equal"
     },
     "REAS":{
       "0": "No reason given",
@@ -882,9 +879,13 @@
       "5": "Guideline information gathered from PSR (No SOR Present)",
       "9": "Guideline information missing and PSR Waived/Missing"
     },
-    "SUPREL":{
-      "996": "Life",
-      "997": "Unspecified Term"
+    "STATMIN":{
+      "9996": "Life",
+      "9997": "Death"
+    },
+    "STATMAX":{
+      "9996": "Life",
+      "9997": "Death"
     },
     "TOTCHPTS":{},
     "SENTTOT":{
@@ -913,8 +914,8 @@
   "column_names": {
     "AGE": "AGE",
     "ACCAP": "ARMD_CAREER_CRIM_ST",
-    "ACCGDLN": "CRT_ACPT_GDLN_PSR",
     "ACCTRESP": "ACC_RESP_ADJ",
+    "BOOKERCD": "SENT_RANGE_2004_2017",
     "CAROFFAP": "CR_OFNDR_FLAG",
     "CIRCDIST": "DIST_CRT",
     "CITWHERE": "CTRY_OF_CTZNSHP",
@@ -933,11 +934,9 @@
     "INNOPL": "ORGN_DPTR_NOT_FROM_PLEA",
     "INOUT": "RCVD_PRIS_SENT", 
     "INPLEA": "ORGN_DPTR_FROM_PLEA",
-    "MNTHDEPT": "MNTHS_DEPT",
     "MOCOMCON": "MNTHS_COM_CONFMT",
     "MOHOMDET": "MNTHS_HOME_DETENT",
     "MOINTCON": "MNTHS_INTMT_CONFMT",
-    "MONCIRC": "CRCT_CRT",
     "MONSEX": "SEX",
     "NEWCNVTN": "TRIAL_FLAG", 
     "NEWRACE": "RACE",
@@ -947,22 +946,21 @@
     "OFFGUIDE": "OFF_TYPE_2018_PRSNT",
     "OFFTYPSB": "OFF_TYPE_2010_2017",
     "OFFV": "LAW_ENFMT_VCTM_ADJ",
-    "POOFFICE": "PO_OFFICE",
     "PRESENT": "DETENT_ST",
     "PRISDUM": "RECIEVED_PRSN_FLAG",
     "PROBATN": "MNTHS_PROBAT",
-    "RANGEPT": "LOC_SENT_IN_GDLNS", 
     "REAS": "REAS_OUTSIDE_GDLN",
     "RETEXT": "OTHR_REAS_OUTSIDE_GDLN",
     "SAFE": "SAFETY_REDUCTION_GLDN", 
     "SAFETY": "RCVD_SAFETY_VLV", 
     "SENTIMP": "TYPE_OF_SENT",
-    "SENTMON": "MNTH_OF_SENT",
+    "SENTMON": "SENT_MNTH",
     "SENTPTS": "OFF_CMTD_UNDER_SUP", 
-    "SENTYR": "YR_OF_SENT",
-    "SENTRNGE": "SENT_RANGE",
+    "SENTYR": "SENT_YR",
+    "SENTRNGE": "SENT_RANGE_2018_PRSNT",
     "SOURCES": "SOURCES", 
-    "SUPREL": "MNTHS_SUP_REL",
+    "STATMIN": "STAT_MIN",
+    "STATMAX": "STAT_MAX",
     "TOTCHPTS": "TOT_CH_PTS", 
     "SENTTOT": "MNTHS_PRSN_NO_ALT", 
     "TYPEMONY": "FINANCIAL_PEN", 
