@@ -7,4 +7,4 @@ data/*
 # ignore virtual environment directory
 .venv/
 scripts/__pycache__/
-
+scripts/modeling/__pycache__/*
