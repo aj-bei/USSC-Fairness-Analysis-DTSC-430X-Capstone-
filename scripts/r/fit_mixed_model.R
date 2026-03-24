@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
 
-# load necessary libraries with suppressed startup messages
 suppressPackageStartupMessages({
   library(jsonlite)
   library(lme4)
@@ -13,7 +12,6 @@ if (length(args) < 1) {
   stop("Usage: Rscript fit_mixed_model.R <config_path>")
 }
 
-# capture command line argument for config path and read JSON config
 config_path <- args[1]
 config <- jsonlite::fromJSON(config_path, simplifyVector = TRUE)
 
@@ -81,7 +79,6 @@ extract_fit_stats <- function(model) {
   out
 }
 
-# extract covergence messages, singularity status, and optimizer info from model
 extract_diagnostics <- function(model) {
   optinfo <- tryCatch(model@optinfo, error = function(e) NULL)
 
@@ -90,7 +87,6 @@ extract_diagnostics <- function(model) {
     if (is.null(msgs)) character(0) else as.character(msgs)
   }, error = function(e) character(0))
 
-  # check for singularity and return NA if isSingular throws an error
   singular <- tryCatch(isSingular(model, tol = 1e-4), error = function(e) NA)
   converged <- length(conv_messages) == 0
 
@@ -187,6 +183,39 @@ extract_random_effects <- function(model) {
   combined
 }
 
+extract_random_effects_covariance <- function(model) {
+  vc <- VarCorr(model)
+
+  if (length(vc) == 0) {
+    return(data.frame())
+  }
+
+  out_list <- list()
+
+  for (grp in names(vc)) {
+    mat <- as.matrix(vc[[grp]])
+
+    if (is.null(mat) || length(mat) == 0) {
+      next
+    }
+
+    df <- as.data.frame(as.table(mat), stringsAsFactors = FALSE)
+    names(df) <- c("term1", "term2", "covariance")
+    df$group <- grp
+
+    df <- df[, c("group", "term1", "term2", "covariance")]
+    out_list[[grp]] <- df
+  }
+
+  if (length(out_list) == 0) {
+    return(data.frame())
+  }
+
+  combined <- do.call(rbind, out_list)
+  rownames(combined) <- NULL
+  combined
+}
+
 result <- list(
   success = FALSE,
   formula = config$formula,
@@ -201,6 +230,7 @@ result <- list(
   fixed_effects = list(),
   random_effects_variance = list(),
   random_effects = list(),
+  random_effects_covariance = list(),
   fit_statistics = list(),
   diagnostics = list(),
   warnings = list(),
@@ -302,6 +332,11 @@ tryCatch(
       if (isTRUE(config$return_random_effects)) {
         re_df <- extract_random_effects(model)
         result$random_effects <- df_to_records(re_df)
+      }
+
+      if (isTRUE(config$return_random_effects_covariance)) {
+        cov_df <- extract_random_effects_covariance(model)
+        result$random_effects_covariance <- df_to_records(cov_df)
       }
 
       result$fit_statistics <- extract_fit_stats(model)

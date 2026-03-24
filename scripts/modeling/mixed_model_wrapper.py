@@ -26,6 +26,7 @@ class MixedModelResult:
     fixed_effects: pd.DataFrame
     random_effects_variance: pd.DataFrame
     random_effects: pd.DataFrame
+    random_effects_covariance_matrices: dict[str, pd.DataFrame]
     fit_statistics: dict[str, Any]
     diagnostics: dict[str, Any]
     warnings: list[str]
@@ -37,7 +38,7 @@ class MixedModelResult:
 
 
 class MixedModelError(Exception):
-    """Raised when the mixed model running fails."""
+    """Raised when the mixed model pipeline fails."""
 
 
 def fit_mixed_model(
@@ -50,6 +51,7 @@ def fit_mixed_model(
     return_confint: bool = True,
     return_random_effects_variance: bool = True,
     return_random_effects: bool = False,
+    return_random_effects_covariance: bool = False,
     return_fitted: bool = False,
     return_residuals: bool = False,
     keep_raw_summary: bool = True,
@@ -58,6 +60,50 @@ def fit_mixed_model(
     r_script_path: str | Path = "scripts/r/fit_mixed_model.R",
     r_executable: str = "Rscript",
 ) -> MixedModelResult:
+    """
+    Fit a mixed-effects model in R via lme4/lmerTest and return structured output.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Input dataset.
+    formula : str
+        R-style model formula.
+    family : str
+        Supported: 'gaussian', 'binomial'
+    link : str | None
+        Binomial link, e.g. 'logit', 'probit', 'cloglog'.
+    categorical_cols : list[str] | None
+        Columns to coerce to factors in R.
+    reference_levels : dict[str, str] | None
+        Mapping from factor column to reference level.
+    return_confint : bool
+        Included in config for future extension.
+    return_random_effects_variance : bool
+        Whether to return variance component output from broom.mixed::tidy(..., effects="ran_pars").
+    return_random_effects : bool
+        Whether to return BLUPs / conditional modes from ranef(model).
+    return_random_effects_covariance : bool
+        Whether to return covariance matrices for random effects, exposed as a dict of DataFrames.
+    return_fitted : bool
+        Whether to return the first few fitted values in diagnostics.
+    return_residuals : bool
+        Whether to return the first few residuals in diagnostics.
+    keep_raw_summary : bool
+        Whether to return the plain-text R summary.
+    optimizer : str | None
+        Optional optimizer passed to lme4 control.
+    nAGQ : int
+        Number of adaptive Gauss-Hermite quadrature points for glmer.
+    r_script_path : str | Path
+        Path to the R backend script.
+    r_executable : str
+        Name or full path of the Rscript executable.
+
+    Returns
+    -------
+    MixedModelResult
+    """
     _validate_inputs(
         data=data,
         formula=formula,
@@ -93,6 +139,7 @@ def fit_mixed_model(
             "return_confint": return_confint,
             "return_random_effects_variance": return_random_effects_variance,
             "return_random_effects": return_random_effects,
+            "return_random_effects_covariance": return_random_effects_covariance,
             "return_fitted": return_fitted,
             "return_residuals": return_residuals,
             "keep_raw_summary": keep_raw_summary,
@@ -103,8 +150,6 @@ def fit_mixed_model(
 
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
-
-        print("Fitting mixed model with formula:", formula, "and family:", family, "using R backend...")
 
         completed = _run_r_backend(
             r_executable=r_executable,
@@ -118,7 +163,6 @@ def fit_mixed_model(
                 f"STDOUT:\n{completed.stdout}\n\nSTDERR:\n{completed.stderr}"
             )
 
-        # load results generated from R into json
         with open(result_path, "r", encoding="utf-8") as f:
             payload = json.load(f)
 
@@ -133,6 +177,24 @@ def fit_mixed_model(
                 f"STDOUT:\n{completed.stdout}\n\nSTDERR:\n{completed.stderr}"
             )
 
+        fixed_effects_df = _records_to_df(
+            payload.get("fixed_effects", []),
+            expected_cols=["effect", "term", "estimate", "std.error", "statistic", "p.value"],
+        )
+
+        random_effects_variance_df = _records_to_df(
+            payload.get("random_effects_variance", []),
+        )
+
+        random_effects_df = _records_to_df(
+            payload.get("random_effects", []),
+            expected_cols=["group", "level", "term", "estimate", "conditional_estimate"],
+        )
+
+        covariance_records = payload.get("random_effects_covariance", [])
+        covariance_long_df = pd.DataFrame.from_records(covariance_records or [])
+        covariance_matrices = _covariance_df_to_matrices(covariance_long_df)
+
         return MixedModelResult(
             success=payload["success"],
             formula=payload["formula"],
@@ -144,13 +206,10 @@ def fit_mixed_model(
             n_dropped=payload.get("n_dropped"),
             converged=payload.get("converged"),
             singular=payload.get("singular"),
-            fixed_effects=pd.DataFrame.from_records(payload.get("fixed_effects", [])),
-            random_effects_variance=pd.DataFrame.from_records(
-                payload.get("random_effects_variance", [])
-            ),
-            random_effects=pd.DataFrame.from_records(
-                payload.get("random_effects", [])
-            ),
+            fixed_effects=fixed_effects_df,
+            random_effects_variance=random_effects_variance_df,
+            random_effects=random_effects_df,
+            random_effects_covariance_matrices=covariance_matrices,
             fit_statistics=payload.get("fit_statistics", {}),
             diagnostics=payload.get("diagnostics", {}),
             warnings=warnings_list,
@@ -170,6 +229,50 @@ def _ensure_list(x: Any) -> list[str]:
     return [str(x)]
 
 
+def _records_to_df(records: Any, expected_cols: Optional[list[str]] = None) -> pd.DataFrame:
+    df = pd.DataFrame.from_records(records or [])
+    if expected_cols:
+        for col in expected_cols:
+            if col not in df.columns:
+                df[col] = pd.NA
+        df = df[expected_cols]
+    return df
+
+
+def _covariance_df_to_matrices(cov_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """
+    Convert long-format covariance rows into a dictionary of covariance matrices.
+
+    Expected input columns:
+        - group
+        - term1
+        - term2
+        - covariance
+    """
+    if cov_df.empty:
+        return {}
+
+    required_cols = {"group", "term1", "term2", "covariance"}
+    missing = required_cols - set(cov_df.columns)
+    if missing:
+        raise ValueError(
+            f"Covariance DataFrame is missing required columns: {sorted(missing)}"
+        )
+
+    matrices: dict[str, pd.DataFrame] = {}
+
+    for group_name, sub_df in cov_df.groupby("group", dropna=False):
+        # preserve natural order from the long table
+        terms = list(dict.fromkeys(sub_df["term1"].tolist() + sub_df["term2"].tolist()))
+
+        mat = sub_df.pivot(index="term1", columns="term2", values="covariance")
+        mat = mat.reindex(index=terms, columns=terms)
+
+        matrices[str(group_name)] = mat
+
+    return matrices
+
+
 def _validate_inputs(
     data: pd.DataFrame,
     formula: str,
@@ -181,9 +284,14 @@ def _validate_inputs(
     r_script_path: str | Path,
     r_executable: str,
 ) -> None:
+    if not isinstance(data, pd.DataFrame):
+        raise TypeError("`data` must be a pandas DataFrame.")
 
     if data.empty:
         raise ValueError("`data` is empty.")
+
+    if not isinstance(formula, str) or "~" not in formula:
+        raise ValueError("`formula` must be a valid R-style formula string containing '~'.")
 
     allowed_families = {"gaussian", "binomial"}
     if family not in allowed_families:
@@ -226,15 +334,12 @@ def _run_r_backend(
     r_script_path: str | Path,
     config_path: Path,
 ) -> subprocess.CompletedProcess:
-    
-    # build command to run R script with command line args
     cmd = [
         r_executable,
         str(Path(r_script_path).resolve()),
         str(config_path.resolve()),
     ]
 
-    # run the R script and capture output
     completed = subprocess.run(
         cmd,
         capture_output=True,
