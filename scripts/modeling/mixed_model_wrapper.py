@@ -7,8 +7,12 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
+import time
 
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
 
 
 @dataclass
@@ -19,6 +23,7 @@ class MixedModelResult:
     link: Optional[str]
     engine: str
     n_input: int
+    n_written: int
     n_used: Optional[int]
     n_dropped: Optional[int]
     converged: Optional[bool]
@@ -36,10 +41,75 @@ class MixedModelResult:
     stderr: Optional[str]
     config: dict[str, Any]
 
+    def print_summary(self) -> None:
+        if self.raw_summary:
+            print(self.raw_summary)
+        else:
+            print("No summary available.")
+
+
+@dataclass
+class MixedModelANOVAResult:
+    success: bool
+    formula_null: str
+    formula_alt: str
+    family: str
+    link: Optional[str]
+    test_type: str
+    reml_used: Optional[bool]
+    model_null_fit: dict[str, Any]
+    model_alt_fit: dict[str, Any]
+    comparison_table: pd.DataFrame
+    test: dict[str, Any]
+    warnings: list[str]
+    errors: list[str]
+    raw_anova: Optional[str]
+    stdout: Optional[str]
+    stderr: Optional[str]
+    config: dict[str, Any]
+
+    def print_anova(self) -> None:
+        if self.raw_anova:
+            print(self.raw_anova)
+        else:
+            print("No ANOVA output available.")
+
 
 class MixedModelError(Exception):
     """Raised when the mixed model pipeline fails."""
 
+def plot_diagnostics(result: MixedModelResult) -> None:
+
+    """
+    Plot basic diagnostics for a fitted mixed model, if available in the result.diagnostics.
+        - Residuals vs Fitted: to check for non-linearity, heteroscedasticity, and outliers.
+        - Histogram of Residuals: to check for normality of residuals.
+        - QQ Plot of Residuals: to check for normality of residuals and identify deviations in the tails.
+    """
+
+    if "residuals" in result.diagnostics and "fitted" in result.diagnostics:
+        resid = result.diagnostics["residuals"]
+        fitted = result.diagnostics["fitted"]
+
+        fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+
+        sns.scatterplot(x=fitted, y=resid, ax=axes[0], alpha=0.4)
+        axes[0].axhline(0, color="red", linestyle="--")
+        axes[0].set_title("Residuals vs Fitted")
+        axes[0].set_xlabel("Fitted values")
+        axes[0].set_ylabel("Residuals")
+
+        sns.histplot(resid, kde=True, ax=axes[1])
+        axes[1].set_title("Histogram of Residuals")
+        axes[1].set_xlabel("Residual value")
+
+        sm.qqplot(resid, line="45", ax=axes[2])
+        axes[2].set_title("QQ Plot of Residuals")
+
+        plt.tight_layout()
+        plt.show()
+    else:
+        print("No residuals or fitted values available for diagnostics. Please ensure `return_fitted=True` and `return_residuals=True` when fitting the model.")
 
 def fit_mixed_model(
     data: pd.DataFrame,
@@ -48,7 +118,7 @@ def fit_mixed_model(
     link: Optional[str] = None,
     categorical_cols: Optional[list[str]] = None,
     reference_levels: Optional[dict[str, str]] = None,
-    return_confint: bool = True,
+    return_confint: bool = False,
     return_random_effects_variance: bool = True,
     return_random_effects: bool = False,
     return_random_effects_covariance: bool = False,
@@ -57,9 +127,11 @@ def fit_mixed_model(
     keep_raw_summary: bool = True,
     optimizer: Optional[str] = None,
     nAGQ: int = 1,
+    reml: bool = True,
     r_script_path: str | Path = "scripts/r/fit_mixed_model.R",
     r_executable: str = "Rscript",
 ) -> MixedModelResult:
+    
     """
     Fit a mixed-effects model in R via lme4/lmerTest and return structured output.
 
@@ -104,6 +176,7 @@ def fit_mixed_model(
     -------
     MixedModelResult
     """
+
     _validate_inputs(
         data=data,
         formula=formula,
@@ -128,6 +201,7 @@ def fit_mixed_model(
         data.to_csv(data_path, index=False)
 
         config = {
+            "mode": "fit",
             "formula": formula,
             "family": family,
             "link": link,
@@ -146,16 +220,24 @@ def fit_mixed_model(
             "optimizer": optimizer,
             "nAGQ": nAGQ,
             "n_input": int(len(data)),
+            "n_written": int(len(data.columns)),
+            "reml": bool(reml) if family == "gaussian" else None,
         }
 
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
+
+        print(f"Fitting mixed model with formula: {formula}, family: {family}, and optimizer: {optimizer}...")
+        time1 = time.time()
 
         completed = _run_r_backend(
             r_executable=r_executable,
             r_script_path=r_script_path,
             config_path=config_path,
         )
+
+        time2 = time.time()
+        print(f"Seconds taken to fit mixed model: {round(time2 - time1, 2)}")
 
         if not result_path.exists():
             raise MixedModelError(
@@ -195,6 +277,12 @@ def fit_mixed_model(
         covariance_long_df = pd.DataFrame.from_records(covariance_records or [])
         covariance_matrices = _covariance_df_to_matrices(covariance_long_df)
 
+        diagnostics = payload.get("diagnostics", {})
+        if "residuals" in diagnostics:
+            diagnostics["residuals"] = pd.Series(diagnostics["residuals"], name="residual")
+        if "fitted" in diagnostics:
+            diagnostics["fitted"] = pd.Series(diagnostics["fitted"], name="fitted")
+
         return MixedModelResult(
             success=payload["success"],
             formula=payload["formula"],
@@ -202,6 +290,7 @@ def fit_mixed_model(
             link=payload.get("link"),
             engine=payload["engine"],
             n_input=payload["n_input"],
+            n_written=payload.get("n_written", len(data.columns)),
             n_used=payload.get("n_used"),
             n_dropped=payload.get("n_dropped"),
             converged=payload.get("converged"),
@@ -211,7 +300,7 @@ def fit_mixed_model(
             random_effects=random_effects_df,
             random_effects_covariance_matrices=covariance_matrices,
             fit_statistics=payload.get("fit_statistics", {}),
-            diagnostics=payload.get("diagnostics", {}),
+            diagnostics=diagnostics,
             warnings=warnings_list,
             errors=errors_list,
             raw_summary=payload.get("raw_summary"),
@@ -219,6 +308,129 @@ def fit_mixed_model(
             stderr=completed.stderr,
             config=config,
         )
+
+
+def anova_mixed_models(
+    data: pd.DataFrame,
+    null_formula: str,
+    alt_formula: str,
+    family: str = "gaussian",
+    link: Optional[str] = None,
+    categorical_cols: Optional[list[str]] = None,
+    reference_levels: Optional[dict[str, str]] = None,
+    optimizer: Optional[str] = None,
+    nAGQ: int = 1,
+    test_type: str = "ml",
+    r_script_path: str | Path = "scripts/r/fit_mixed_model.R",
+    r_executable: str = "Rscript",
+) -> MixedModelANOVAResult:
+    _validate_inputs(
+        data=data,
+        formula=null_formula,
+        family=family,
+        link=link,
+        categorical_cols=categorical_cols,
+        reference_levels=reference_levels,
+        nAGQ=nAGQ,
+        r_script_path=r_script_path,
+        r_executable=r_executable,
+    )
+    _validate_formula(alt_formula)
+    _validate_test_type(test_type=test_type, family=family)
+
+    categorical_cols = categorical_cols or []
+    reference_levels = reference_levels or {}
+
+    with tempfile.TemporaryDirectory(prefix="mixed_model_anova_") as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        data_path = tmpdir_path / "model_data.csv"
+        config_path = tmpdir_path / "config.json"
+        result_path = tmpdir_path / "result.json"
+
+        data.to_csv(data_path, index=False)
+
+        config = {
+            "mode": "anova",
+            "formula_null": null_formula,
+            "formula_alt": alt_formula,
+            "family": family,
+            "link": link,
+            "engine": "lme4",
+            "data_path": str(data_path.resolve()),
+            "result_path": str(result_path.resolve()),
+            "categorical_cols": categorical_cols,
+            "reference_levels": reference_levels,
+            "optimizer": optimizer,
+            "nAGQ": nAGQ,
+            "n_input": int(len(data)),
+            "n_written": int(len(data.columns)),
+            "test_type": test_type.lower(),
+        }
+
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(config, f, indent=2)
+
+        completed = _run_r_backend(
+            r_executable=r_executable,
+            r_script_path=r_script_path,
+            config_path=config_path,
+        )
+
+        if not result_path.exists():
+            raise MixedModelError(
+                "R script finished but no result.json was produced.\n"
+                f"STDOUT:\n{completed.stdout}\n\nSTDERR:\n{completed.stderr}"
+            )
+
+        with open(result_path, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+
+        warnings_list = _ensure_list(payload.get("warnings"))
+        errors_list = _ensure_list(payload.get("errors"))
+
+        if not payload.get("success", False):
+            raise MixedModelError(
+                "Mixed-model ANOVA failed in R.\n"
+                f"Errors: {errors_list}\n"
+                f"Warnings: {warnings_list}\n"
+                f"STDOUT:\n{completed.stdout}\n\nSTDERR:\n{completed.stderr}"
+            )
+
+        comparison_table = _records_to_df(payload.get("comparison_table", []))
+
+        return MixedModelANOVAResult(
+            success=payload["success"],
+            formula_null=payload["formula_null"],
+            formula_alt=payload["formula_alt"],
+            family=payload["family"],
+            link=payload.get("link"),
+            test_type=payload.get("test_type", test_type.lower()),
+            reml_used=payload.get("reml_used"),
+            model_null_fit=payload.get("model_null_fit", {}),
+            model_alt_fit=payload.get("model_alt_fit", {}),
+            comparison_table=comparison_table,
+            test=payload.get("test", {}),
+            warnings=warnings_list,
+            errors=errors_list,
+            raw_anova=payload.get("raw_anova"),
+            stdout=completed.stdout,
+            stderr=completed.stderr,
+            config=config,
+        )
+
+
+def _validate_formula(formula: str) -> None:
+    if not isinstance(formula, str) or "~" not in formula:
+        raise ValueError("Formula must be a valid R-style formula string containing '~'.")
+
+
+def _validate_test_type(test_type: str, family: str) -> None:
+    allowed = {"ml", "reml"}
+    tt = test_type.lower()
+    if tt not in allowed:
+        raise ValueError(f"`test_type` must be one of {allowed}, got {test_type!r}.")
+    if family != "gaussian" and tt == "reml":
+        raise ValueError("`test_type='reml'` is only valid for gaussian mixed models.")
 
 
 def _ensure_list(x: Any) -> list[str]:
@@ -240,15 +452,6 @@ def _records_to_df(records: Any, expected_cols: Optional[list[str]] = None) -> p
 
 
 def _covariance_df_to_matrices(cov_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
-    """
-    Convert long-format covariance rows into a dictionary of covariance matrices.
-
-    Expected input columns:
-        - group
-        - term1
-        - term2
-        - covariance
-    """
     if cov_df.empty:
         return {}
 
@@ -262,12 +465,9 @@ def _covariance_df_to_matrices(cov_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
     matrices: dict[str, pd.DataFrame] = {}
 
     for group_name, sub_df in cov_df.groupby("group", dropna=False):
-        # preserve natural order from the long table
         terms = list(dict.fromkeys(sub_df["term1"].tolist() + sub_df["term2"].tolist()))
-
         mat = sub_df.pivot(index="term1", columns="term2", values="covariance")
         mat = mat.reindex(index=terms, columns=terms)
-
         matrices[str(group_name)] = mat
 
     return matrices
@@ -284,14 +484,8 @@ def _validate_inputs(
     r_script_path: str | Path,
     r_executable: str,
 ) -> None:
-    if not isinstance(data, pd.DataFrame):
-        raise TypeError("`data` must be a pandas DataFrame.")
 
-    if data.empty:
-        raise ValueError("`data` is empty.")
-
-    if not isinstance(formula, str) or "~" not in formula:
-        raise ValueError("`formula` must be a valid R-style formula string containing '~'.")
+    _validate_formula(formula)
 
     allowed_families = {"gaussian", "binomial"}
     if family not in allowed_families:
@@ -299,7 +493,7 @@ def _validate_inputs(
 
     allowed_binomial_links = {"logit", "probit", "cloglog", "cauchit", "log"}
     if family == "gaussian" and link is not None:
-        raise ValueError("For now, `link` must be None when family='gaussian'.")
+        raise ValueError("For gaussian models, `link` must be None.")
     if family == "binomial" and link is not None and link not in allowed_binomial_links:
         raise ValueError(
             f"For binomial models, `link` must be one of {allowed_binomial_links}, got {link!r}."
