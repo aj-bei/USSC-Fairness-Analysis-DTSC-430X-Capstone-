@@ -603,7 +603,11 @@ USSC_MAP = {
       "6": "§5K3.1 Early Disposition Program",
       "7": "Joint motion by both parties"
     },
-    "INOUT":{}, 
+    # we flip the meaning of the INOUT variable so that 1 = in and 0 = out, which is more intuitive for our purposes
+    "INOUT":{
+        "1": "0",
+        "0": "1"
+    }, 
     "INPLEA": {
       "1": "5K1.1 motion",
       "2": "5K3.1 EDP/Fast Track program",
@@ -1108,57 +1112,59 @@ USSC_MAP = {
   },
 
   "column_names": {
-    "AGE": "AGE",
-    "ACCAP": "ARMD_CAREER_CRIM_ST",
-    "ACCTRESP": "ACC_RESP_ADJ",
+    "AGE": "AGE",  # age (in years) of the offender at the time of sentencing
+    "ACCAP": "ARMD_CAREER_CRIM_ST",  # whether the offender was considered an armed criminal career by the guidelines
+    "ACCTRESP": "ACC_RESP_ADJ",  # whether the offender received an adjustment to offense level for acceptance of responsibility
     "BOOKERCD": "SENT_RANGE_2004_2017",
-    "CAROFFAP": "CR_OFNDR_FLAG",
-    "CIRCDIST": "DIST_CRT",
-    "CITWHERE": "CTRY_OF_CTZNSHP",
-    "CITIZEN": "CITIZEN",
-    "COADJLEV": "OL_B4_ACC_RESP",
-    "CRIMHIST": "ANY_CRIM_HIST_FLAG",
-    "DSIND": "DOC_ST_INDICTMENT",
+    "CAROFFAP": "CR_OFNDR_FLAG",  # whether the offender was a career offender according to the guidelines
+    "CIRCDIST": "DIST_CRT",  # the federal district court in which the offender was sentenced
+    "CITWHERE": "CTRY_OF_CTZNSHP",  # the country of citizenship of the offender (3 digit iso code)
+    "CITIZEN": "CITIZEN",  # the citizenship status of the offender
+    "COADJLEV": "OL_B4_ACC_RESP",  # the offense level prior to any adjustments for acceptance of responsibility
+    "CRIMHIST": "ANY_CRIM_HIST_FLAG",  # whether the offender had any prior criminal history, regardless of if it was counted under the guidelines
+    # -- COLUMNS CURRENRLY NOT IN THE DATASET --
+    "DSIND": "DOC_ST_INDICTMENT", 
     "DSJANDC": "DOC_ST_JC",
     "DSPLEA": "DOC_ST_PLEA_AGMT",
     "DSPSR": "DOC_ST_PSR",
     "DSSOR": "DOC_ST_SOR",
-    "EDUCATN": "EDUCATION",
+    # -- END COLUMNS CURRENTLY NOT IN THE DATASET --
+    "EDUCATN": "EDUCATION",  # the highest level of education attained by the offender at the time of sentencing
     "FSASV": "VAR_FSA_SFTY_VLV",
-    "GLMAX": "GL_MAX",
-    "GLMIN": "GL_MIN",
+    "GLMAX": "GL_MAX",  # the maximum sentence length (in months) under the guidelines 
+    "GLMIN": "GL_MIN",  # the minimum sentence length (in months) under the guidelines
     "INNOPL": "ORGN_DPTR_NOT_FROM_PLEA",
-    "INOUT": "RCVD_PRIS_SENT", 
+    "INOUT": "RCVD_PRIS_SENT_ELGB_PROBAT", 
     "INPLEA": "ORGN_DPTR_FROM_PLEA",
-    "MOCOMCON": "MNTHS_COM_CONFMT",
-    "MOHOMDET": "MNTHS_HOME_DETENT",
-    "MOINTCON": "MNTHS_INTMT_CONFMT",
-    "MONSEX": "SEX",
-    "NEWCNVTN": "TRIAL_FLAG", 
-    "NEWRACE": "RACE",
-    "NOCOUNTS": "NUM_COUNTS",
-    "NUMDEPEN": "NUM_DEPENDENTS",
-    "OBST": "OBSTR_JUS_ADJ",
-    "OFFGUIDE": "OFF_TYPE_2018_PRSNT",
-    "OFFTYPSB": "OFF_TYPE_2010_2017",
-    "OFFV": "LAW_ENFMT_VCTM_ADJ",
-    "PRESENT": "DETENT_ST",
-    "PRISDUM": "RECIEVED_PRSN_FLAG",
-    "PROBATN": "MNTHS_PROBAT",
-    "REAS": "REAS_OUTSIDE_GDLN",
-    "RETEXT": "OTHR_REAS_OUTSIDE_GDLN",
-    "SAFE": "SAFETY_REDUCTION_GLDN", 
-    "SAFETY": "RCVD_SAFETY_VLV", 
-    "SENTIMP": "TYPE_OF_SENT",
-    "SENTMON": "SENT_MNTH",
-    "SENTPTS": "OFF_CMTD_UNDER_SUP", 
-    "SENTYR": "SENT_YR",
-    "SENTRNGE": "SENT_RANGE_2018_PRSNT",
-    "SOURCES": "SOURCES", 
-    "STATMIN": "STAT_MIN",
-    "STATMAX": "STAT_MAX",
-    "TOTCHPTS": "TOT_CH_PTS", 
-    "SENTTOT": "MNTHS_PRSN_NO_ALT", 
+    "MOCOMCON": "MNTHS_COM_CONFMT",  # the number of months of confinement ordered by the court 
+    "MOHOMDET": "MNTHS_HOME_DETENT",  # the number of months of home detention ordered by the court
+    "MOINTCON": "MNTHS_INTMT_CONFMT", # the number of months of intermittent confinement ordered by the court
+    "MONSEX": "SEX",  # the sex of the individual
+    "NEWCNVTN": "TRIAL_FLAG",  # whether the offender was convicted at trial or through a plea agreement
+    "NEWRACE": "RACE",  # the race of the offender
+    "NOCOUNTS": "NUM_COUNTS",  # the number of counts of conviction for the offender
+    "NUMDEPEN": "NUM_DEPENDENTS",  # the number of dependents the offender had at the time of sentencing
+    "OBST": "OBSTR_JUS_ADJ",  # guideline adjustment to offense level for obstruction of justice
+    "OFFGUIDE": "OFF_TYPE_2018_PRSNT",  # offense type (the mappings of offense types was changed after FY2017, so there are two separate columns for offense type for the two time periods)
+    "OFFTYPSB": "OFF_TYPE_2010_2017",  # offense type
+    "OFFV": "LAW_ENFMT_VCTM_ADJ",  # guideline adjustment to offense level for being a law enforcement victim
+    "PRESENT": "DETENT_ST",  # the offender's status at the time of sentencing (in custody, on bail, released on own recognizance, or other)
+    "PRISDUM": "RECIEVED_PRSN_FLAG",  # whether the offender received a prison sentence (sentences of home detention only or probation only would be classified as 0).
+    "PROBATN": "MNTHS_PROBAT",  # the number of months of probation ordered by the court
+    "REAS": "REAS_OUTSIDE_GDLN",  # the reason for a sentence outside the guideline range
+    "RETEXT": "OTHR_REAS_OUTSIDE_GDLN",  # other reasons for a sentence outside the guideline range
+    "SAFE": "SAFETY_REDUCTION_GLDN",  # guideline adjustment for safety valve reduction
+    "SAFETY": "RCVD_SAFETY_VLV",  # whether the offender received a safety valve reduction
+    "SENTIMP": "TYPE_OF_SENT",  # the type of sentence (prison only, probation only, etc.)
+    "SENTMON": "SENT_MNTH",  # the month of sentencing
+    "SENTPTS": "OFF_CMTD_UNDER_SUP",  # the offense committed under supervision
+    "SENTYR": "SENT_YR",  # the year of sentencing
+    "SENTRNGE": "SENT_RANGE_2018_PRSNT",  # the sentence range for the offender
+    "SOURCES": "SOURCES",  # the source of the guideline information. When certain documents are missing (e.g., no SOR, no PSR, etc.) the USSC will look towards other documents to fill in the missing information. This column indicates which documents wether the USSC was able to successfully fill in the missing information from other documents.
+    "STATMIN": "STAT_MIN",  # the minimum sentence length (in months) allowed under the statute of conviction
+    "STATMAX": "STAT_MAX",  # the maximum sentence length (in months) allowed under the statute of conviction
+    "TOTCHPTS": "TOT_CH_PTS",  # the total number of criminal history points for the offender. This value is binned in order to create the criminal history category (CHC).
+    "SENTTOT": "MNTHS_PRSN_NO_ALT",
     "TYPEMONY": "FINANCIAL_PEN", 
     "TYPEOTHS": "OTH_SENT_TYPES", 
     "TYPEOTTX": "OTH_SENT_TYPES_TXT",
