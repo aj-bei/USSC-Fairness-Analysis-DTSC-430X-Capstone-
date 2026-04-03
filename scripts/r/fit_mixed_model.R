@@ -7,13 +7,28 @@ suppressPackageStartupMessages({
 })
 
 args <- commandArgs(trailingOnly = TRUE)
-F
+
 if (length(args) < 1) {
   stop("Usage: Rscript fit_mixed_model.R <config_path>")
 }
 
 config_path <- args[1]
 config <- jsonlite::fromJSON(config_path, simplifyVector = TRUE)
+
+normalize_family_name <- function(family_name) {
+  fam <- tolower(family_name)
+
+  if (fam %in% c("gaussian", "normal")) return("gaussian")
+  if (fam %in% c("binomial", "logistic")) return("binomial")
+  if (fam %in% c("gamma")) return("gamma")
+  if (fam %in% c("negative_binomial", "negative-binomial", "negbin", "nb", "nbinom")) {
+    return("negative_binomial")
+  }
+
+  fam
+}
+
+config$family <- normalize_family_name(config$family)
 
 null_to_na <- function(x) {
   if (is.null(x)) return(NA)
@@ -80,6 +95,14 @@ make_binomial_family <- function(link_name) {
   }
 }
 
+make_gamma_family <- function(link_name) {
+  if (is.null(link_name) || is.na(link_name) || link_name == "") {
+    stats::Gamma(link = "log")
+  } else {
+    stats::Gamma(link = link_name)
+  }
+}
+
 coerce_model_data <- function(data, categorical_cols, reference_levels) {
   if (!is.null(categorical_cols) && length(categorical_cols) > 0) {
     for (col in categorical_cols) {
@@ -116,7 +139,7 @@ coerce_model_data <- function(data, categorical_cols, reference_levels) {
   data
 }
 
-fit_model_from_formula <- function(formula_str, data, family_name, link_name, optimizer, nAGQ, reml) {
+fit_model_from_formula <- function(formula_str, data, family_name, link_name, optimizer, nAGQ, reml, offset) {
   fml <- as.formula(formula_str)
   ctrl <- build_control(family_name, optimizer)
 
@@ -126,14 +149,16 @@ fit_model_from_formula <- function(formula_str, data, family_name, link_name, op
         formula = fml,
         data = data,
         control = ctrl,
-        REML = isTRUE(reml)
+        REML = isTRUE(reml),
+        offset = if (!is.null(offset)) data[[offset]] else NULL
       ))
     } else {
       return(lme4::lmer(
         formula = fml,
         data = data,
         control = ctrl,
-        REML = isTRUE(reml)
+        REML = isTRUE(reml),
+        offset = if (!is.null(offset)) data[[offset]] else NULL
       ))
     }
   }
@@ -145,7 +170,29 @@ fit_model_from_formula <- function(formula_str, data, family_name, link_name, op
       data = data,
       family = fam,
       control = ctrl,
-      nAGQ = nAGQ
+      nAGQ = nAGQ,
+      offset = if (!is.null(offset)) data[[offset]] else NULL
+    ))
+  }
+
+  if (family_name == "gamma") {
+    fam <- make_gamma_family(link_name)
+    return(lme4::glmer(
+      formula = fml,
+      data = data,
+      family = fam,
+      control = ctrl,
+      nAGQ = nAGQ,
+      offset = if (!is.null(offset)) data[[offset]] else NULL
+    ))
+  }
+
+  if (family_name == "negative_binomial") {
+    return(lme4::glmer.nb(
+      formula = fml,
+      data = data,
+      control = ctrl,
+      offset = if (!is.null(offset)) data[[offset]] else NULL
     ))
   }
 
@@ -174,6 +221,18 @@ extract_fit_stats <- function(model) {
   if (inherits(model, "lmerMod")) {
     out$sigma <- tryCatch(sigma(model), error = function(e) NA_real_)
     out$REMLcrit <- tryCatch(REMLcrit(model), error = function(e) NA_real_)
+  }
+
+  if (inherits(model, "glmerMod")) {
+    out$theta_nb <- tryCatch({
+      if ("glmer.nb.theta" %in% getNamespaceExports("lme4")) {
+        lme4::getME(model, "glmer.nb.theta")
+      } else {
+        NA_real_
+      }
+    }, error = function(e) {
+      tryCatch(model@resp$theta, error = function(e2) NA_real_)
+    })
   }
 
   out
@@ -317,12 +376,80 @@ extract_test_info <- function(anova_df) {
   )
 }
 
+extract_binomial_diagnostics <- function(model) {
+  diagnostics <- list()
+
+  prob <- tryCatch(as.numeric(fitted(model)), error = function(e) NULL)
+  mf <- tryCatch(model.frame(model), error = function(e) NULL)
+  response <- tryCatch(model.response(mf), error = function(e) NULL)
+
+  if (!is.null(prob)) {
+    diagnostics$predicted_prob <- unname(as.list(prob))
+  }
+
+  if (!is.null(response)) {
+    if (is.factor(response)) {
+      if (nlevels(response) != 2) {
+        stop("Binomial diagnostics currently require a binary response.")
+      }
+      diagnostics$observed_response <- unname(as.list(as.integer(response == levels(response)[2])))
+      diagnostics$positive_class <- levels(response)[2]
+    } else {
+      diagnostics$observed_response <- unname(as.list(as.integer(as.numeric(response))))
+      diagnostics$positive_class <- 1
+    }
+  }
+
+  diagnostics
+}
+
+extract_dharma_diagnostics <- function(model) {
+  diagnostics <- list()
+
+  if (!requireNamespace("DHARMa", quietly = TRUE)) {
+    diagnostics$dharma_available <- FALSE
+    diagnostics$dharma_message <- "Package 'DHARMa' is not installed; simulated residual diagnostics unavailable."
+    return(diagnostics)
+  }
+
+  sim_out <- DHARMa::simulateResiduals(fittedModel = model, plot = FALSE)
+
+  diagnostics$dharma_available <- TRUE
+  diagnostics$dharma_scaled_residuals <- unname(as.list(as.numeric(sim_out$scaledResiduals)))
+  diagnostics$dharma_fitted_predicted <- unname(as.list(as.numeric(sim_out$fittedPredictedResponse)))
+
+  uniformity <- DHARMa::testUniformity(sim_out)
+  dispersion <- DHARMa::testDispersion(sim_out)
+  outliers <- DHARMa::testOutliers(sim_out)
+
+  diagnostics$dharma_tests <- list(
+    uniformity = list(
+      statistic = unname(uniformity$statistic),
+      p_value = uniformity$p.value,
+      method = uniformity$method
+    ),
+    dispersion = list(
+      statistic = unname(dispersion$statistic),
+      p_value = dispersion$p.value,
+      method = dispersion$method
+    ),
+    outliers = list(
+      statistic = unname(outliers$statistic),
+      p_value = outliers$p.value,
+      method = outliers$method
+    )
+  )
+
+  diagnostics
+}
+
 run_fit_mode <- function(config) {
   result <- list(
     success = FALSE,
     formula = config$formula,
     family = config$family,
     link = null_to_na(config$link),
+    offset = config$offset,
     engine = "lme4",
     n_input = config$n_input,
     n_written = config$n_written,
@@ -348,7 +475,7 @@ run_fit_mode <- function(config) {
       {
         data <- read.csv(config$data_path, stringsAsFactors = FALSE)
         data <- coerce_model_data(data, config$categorical_cols, config$reference_levels)
-
+        
         model <- fit_model_from_formula(
           formula_str = config$formula,
           data = data,
@@ -356,7 +483,8 @@ run_fit_mode <- function(config) {
           link_name = config$link,
           optimizer = config$optimizer,
           nAGQ = config$nAGQ,
-          reml = config$reml
+          reml = config$reml,
+          offset = config$offset
         )
 
         mf <- model.frame(model)
@@ -390,14 +518,51 @@ run_fit_mode <- function(config) {
         result$converged <- diag_out$converged
         result$singular <- diag_out$singular
 
-        if (isTRUE(config$return_fitted)) {
-          result$diagnostics$fitted <- unname(as.list(as.numeric(fitted(model))))
+        if (config$family == "gaussian") {
+          if (isTRUE(config$return_fitted)) {
+            result$diagnostics$fitted <- unname(as.list(as.numeric(fitted(model))))
+          }
+
+          if (isTRUE(config$return_residuals)) {
+            resid_vec <- tryCatch(residuals(model), error = function(e) NULL)
+            if (!is.null(resid_vec)) {
+              result$diagnostics$residuals <- unname(as.list(as.numeric(resid_vec)))
+            }
+          }
         }
 
-        if (isTRUE(config$return_residuals)) {
-          resid_vec <- tryCatch(residuals(model, type="pearson"), error = function(e) NULL)
-          if (!is.null(resid_vec)) {
-            result$diagnostics$residuals <- unname(as.list(as.numeric(resid_vec)))
+        if (config$family == "binomial") {
+          if (isTRUE(config$return_fitted)) {
+            binom_diag <- extract_binomial_diagnostics(model)
+            result$diagnostics <- c(result$diagnostics, binom_diag)
+          }
+
+          if (isTRUE(config$return_residuals)) {
+            resid_vec <- tryCatch(residuals(model, type = "pearson"), error = function(e) NULL)
+            if (!is.null(resid_vec)) {
+              result$diagnostics$residuals <- unname(as.list(as.numeric(resid_vec)))
+            }
+          }
+        }
+
+        if (config$family %in% c("gamma", "negative_binomial")) {
+          if (isTRUE(config$return_fitted) || isTRUE(config$return_residuals)) {
+            dharma_diag <- extract_dharma_diagnostics(model)
+            result$diagnostics <- c(result$diagnostics, dharma_diag)
+          }
+
+          if (isTRUE(config$return_fitted)) {
+            fit_vec <- tryCatch(as.numeric(fitted(model)), error = function(e) NULL)
+            if (!is.null(fit_vec)) {
+              result$diagnostics$fitted <- unname(as.list(fit_vec))
+            }
+          }
+
+          if (isTRUE(config$return_residuals)) {
+            resid_vec <- tryCatch(residuals(model, type = "pearson"), error = function(e) NULL)
+            if (!is.null(resid_vec)) {
+              result$diagnostics$residuals <- unname(as.list(as.numeric(resid_vec)))
+            }
           }
         }
 
@@ -435,6 +600,7 @@ run_anova_mode <- function(config) {
     family = config$family,
     link = null_to_na(config$link),
     test_type = config$test_type,
+    offset = config$offset,
     reml_used = NA,
     model_null_fit = list(),
     model_alt_fit = list(),
@@ -456,8 +622,6 @@ run_anova_mode <- function(config) {
         reml_to_use <- FALSE
         if (config$family == "gaussian") {
           reml_to_use <- identical(tolower(config$test_type), "reml")
-        } else {
-          reml_to_use <- NA
         }
 
         model_null <- fit_model_from_formula(
@@ -467,7 +631,8 @@ run_anova_mode <- function(config) {
           link_name = config$link,
           optimizer = config$optimizer,
           nAGQ = config$nAGQ,
-          reml = reml_to_use
+          reml = reml_to_use,
+          offset = config$offset
         )
 
         model_alt <- fit_model_from_formula(
@@ -477,14 +642,20 @@ run_anova_mode <- function(config) {
           link_name = config$link,
           optimizer = config$optimizer,
           nAGQ = config$nAGQ,
-          reml = reml_to_use
+          reml = reml_to_use,
+          offset = config$offset
         )
 
         result$reml_used <- reml_to_use
         result$model_null_fit <- extract_fit_stats(model_null)
         result$model_alt_fit <- extract_fit_stats(model_alt)
 
-        anova_obj <- anova(model_null, model_alt)
+        if (config$family == "gaussian" && reml_to_use) {
+          anova_obj <- anova(model_null, model_alt)
+        } else {
+          anova_obj <- anova(model_null, model_alt, test = "Chisq")
+        }
+
         anova_df <- as.data.frame(anova_obj)
         anova_df$model <- rownames(anova_df)
         rownames(anova_df) <- NULL

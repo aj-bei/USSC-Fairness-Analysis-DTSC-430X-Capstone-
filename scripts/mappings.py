@@ -594,6 +594,12 @@ USSC_MAP = {
     "GLMIN":{
       "9996": "Life"
     },
+    "XMINSOR":{
+      "9996": "Life"
+    },
+    "XMAXSOR":{
+      "9996": "Life"
+    },
     "INNOPL":{
       "1": "5K1.1 motion",
       "2": "Govt. motion for a departure",
@@ -1108,7 +1114,12 @@ USSC_MAP = {
     "XCRHISSR":{},
     "XFOLSOR":{},
     "ZONE":{},
-    "YEAR": {}
+    "YEAR": {},
+    "APPOINTING_PARTY": {},
+    "JUDGE_AGE": {},
+    "JUDGE_RACE": {},
+    "JUDGE_SEX": {},
+    "JUDGE_NAME": {},
   },
 
   "column_names": {
@@ -1133,6 +1144,8 @@ USSC_MAP = {
     "FSASV": "VAR_FSA_SFTY_VLV",
     "GLMAX": "GL_MAX",  # the maximum sentence length (in months) under the guidelines 
     "GLMIN": "GL_MIN",  # the minimum sentence length (in months) under the guidelines
+    "XMAXSOR": "GL_MAX_UNTRUMPED",  # gl min without factoring in statutory maximums or mandatory minimums
+    "XMINSOR": "GL_MIN_UNTRUMPED",  # gl max without factoring in statutory maximums or mandatory minimums
     "INNOPL": "ORGN_DPTR_NOT_FROM_PLEA",
     "INOUT": "RCVD_PRIS_SENT_ELGB_PROBAT", 
     "INPLEA": "ORGN_DPTR_FROM_PLEA",
@@ -1171,7 +1184,12 @@ USSC_MAP = {
     "XCRHISSR": "CHC",
     "XFOLSOR": "OL", 
     "ZONE": "ZONE_OF_SENT",
-    "YEAR": "FISCAL_YR"
+    "YEAR": "FISCAL_YR",
+    "APPOINTING_PARTY": "APPOINTING_PARTY",
+    "JUDGE_AGE": "JUDGE_AGE",
+    "JUDGE_RACE": "JUDGE_RACE",
+    "JUDGE_SEX": "JUDGE_SEX",
+    "JUDGE_NAME": "JUDGE_NAME",
   }
 }
 

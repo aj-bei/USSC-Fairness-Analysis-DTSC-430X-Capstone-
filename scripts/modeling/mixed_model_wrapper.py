@@ -4,15 +4,17 @@ import json
 import shutil
 import subprocess
 import tempfile
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
-import time
 
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
+import scipy.stats as stats
 import seaborn as sns
 import statsmodels.api as sm
+from sklearn.metrics import classification_report, roc_auc_score, roc_curve
 
 
 @dataclass
@@ -21,6 +23,7 @@ class MixedModelResult:
     formula: str
     family: str
     link: Optional[str]
+    offset: Optional[str]
     engine: str
     n_input: int
     n_written: int
@@ -55,6 +58,7 @@ class MixedModelANOVAResult:
     formula_alt: str
     family: str
     link: Optional[str]
+    offset: Optional[str]
     test_type: str
     reml_used: Optional[bool]
     model_null_fit: dict[str, Any]
@@ -78,22 +82,132 @@ class MixedModelANOVAResult:
 class MixedModelError(Exception):
     """Raised when the mixed model pipeline fails."""
 
-def plot_diagnostics(result: MixedModelResult) -> None:
 
-    """
-    Plot basic diagnostics for a fitted mixed model, if available in the result.diagnostics.
-        - Residuals vs Fitted: to check for non-linearity, heteroscedasticity, and outliers.
-        - Histogram of Residuals: to check for normality of residuals.
-        - QQ Plot of Residuals: to check for normality of residuals and identify deviations in the tails.
-    """
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
+from scipy import stats
+from sklearn.metrics import classification_report, roc_auc_score, roc_curve
 
-    if "residuals" in result.diagnostics and "fitted" in result.diagnostics:
+
+def _binned_quantiles(
+    x: pd.Series,
+    y: pd.Series,
+    n_bins: int = 40,
+    quantiles=(0.1, 0.5, 0.9)
+) -> pd.DataFrame:
+    """
+    Bin x into quantile-based bins and compute requested quantiles of y in each bin.
+    """
+    df = pd.DataFrame({"x": x, "y": y}).dropna().copy()
+
+    # qcut can fail if many duplicate x values; duplicates='drop' handles that
+    df["bin"] = pd.qcut(df["x"], q=n_bins, duplicates="drop")
+
+    out = (
+        df.groupby("bin", observed=False)
+          .apply(
+              lambda g: pd.Series(
+                  {
+                      "x_mid": g["x"].median(),
+                      **{f"q{int(q*100)}": g["y"].quantile(q) for q in quantiles},
+                      "n": len(g),
+                  }
+              )
+          )
+          .reset_index(drop=True)
+          .sort_values("x_mid")
+    )
+    return out
+
+
+def plot_diagnostics(
+    result,
+    threshold: float = 0.5,
+    max_scatter_points: int = 12000,
+    n_bins: int = 40,
+    random_state: int = 42,
+) -> None:
+    family = result.family
+
+    sns.set_style("whitegrid")
+
+    if family == "gaussian":
+        if "residuals" not in result.diagnostics or "fitted" not in result.diagnostics:
+            print(
+                "No residuals or fitted values available. "
+                "Fit with return_fitted=True and return_residuals=True."
+            )
+            return
+
+        # resid = pd.Series(result.diagnostics["residuals"]).dropna().astype(float)
+        # fitted = pd.Series(result.diagnostics["fitted"]).dropna().astype(float)
+
+        # n = min(len(resid), len(fitted))
+        # resid = resid.iloc[:n]
+        # fitted = fitted.iloc[:n]
+
+        # # subsample for visibility if needed
+        # rng = np.random.default_rng(random_state)
+        # if n > max_scatter_points:
+        #     idx = rng.choice(n, size=max_scatter_points, replace=False)
+        #     resid_scatter = resid.iloc[idx]
+        #     fitted_scatter = fitted.iloc[idx]
+        # else:
+        #     resid_scatter = resid
+        #     fitted_scatter = fitted
+
+        # bq = _binned_quantiles(fitted, resid, n_bins=n_bins, quantiles=(0.1, 0.5, 0.9))
+
+        # fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+
+        # # --- Residuals vs fitted: hexbin + binned quantiles
+        # hb = axes[0].hexbin(
+        #     fitted,
+        #     resid,
+        #     gridsize=55,
+        #     mincnt=1,
+        #     cmap="viridis",
+        # )
+        # fig.colorbar(hb, ax=axes[0], label="Count")
+        # axes[0].scatter(
+        #     fitted_scatter,
+        #     resid_scatter,
+        #     s=6,
+        #     alpha=0.08,
+        #     edgecolors="none",
+        #     rasterized=True,
+        # )
+        # axes[0].plot(bq["x_mid"], bq["q50"], linewidth=2, label="Median residual")
+        # axes[0].plot(bq["x_mid"], bq["q10"], linestyle="--", linewidth=1.5, label="10th / 90th pct")
+        # axes[0].plot(bq["x_mid"], bq["q90"], linestyle="--", linewidth=1.5)
+        # axes[0].axhline(0, color="red", linestyle="--", linewidth=1.2)
+        # axes[0].set_title("Residuals vs Fitted")
+        # axes[0].set_xlabel("Fitted values")
+        # axes[0].set_ylabel("Residuals")
+        # axes[0].legend(frameon=True)
+
+        # # --- Histogram
+        # sns.histplot(resid, kde=True, ax=axes[1], bins=50, stat="density")
+        # axes[1].set_title("Histogram of Residuals")
+        # axes[1].set_xlabel("Residual value")
+
+        # # --- QQ plot
+        # sm.qqplot(resid, line="45", ax=axes[2])
+        # axes[2].set_title("QQ Plot of Residuals")
+
+        # plt.tight_layout()
+        # plt.show()
+        # return
+
         resid = result.diagnostics["residuals"]
         fitted = result.diagnostics["fitted"]
 
         fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-        sns.scatterplot(x=fitted, y=resid, ax=axes[0], alpha=0.4)
+        sns.scatterplot(x=fitted, y=resid, ax=axes[0], alpha=0.09)
         axes[0].axhline(0, color="red", linestyle="--")
         axes[0].set_title("Residuals vs Fitted")
         axes[0].set_xlabel("Fitted values")
@@ -108,13 +222,142 @@ def plot_diagnostics(result: MixedModelResult) -> None:
 
         plt.tight_layout()
         plt.show()
-    else:
-        print("No residuals or fitted values available for diagnostics. Please ensure `return_fitted=True` and `return_residuals=True` when fitting the model.")
+  
+    if family == "binomial":
+        required = {"predicted_prob", "observed_response"}
+        if not required.issubset(result.diagnostics):
+            print(
+                "No predicted probabilities / observed responses available. "
+                "Fit with return_fitted=True."
+            )
+            return
+
+        y_true = pd.Series(result.diagnostics["observed_response"]).dropna().astype(int)
+        y_prob = pd.Series(result.diagnostics["predicted_prob"]).dropna().astype(float)
+
+        n = min(len(y_true), len(y_prob))
+        y_true = y_true.iloc[:n]
+        y_prob = y_prob.iloc[:n]
+        y_pred = (y_prob >= threshold).astype(int)
+
+        print("Classification Report")
+        print(classification_report(y_true, y_pred, digits=4))
+
+        try:
+            auc = roc_auc_score(y_true, y_prob)
+            fpr, tpr, _ = roc_curve(y_true, y_prob)
+
+            plt.figure(figsize=(7, 5))
+            plt.plot(fpr, tpr, label=f"ROC curve (AUC = {auc:.4f})")
+            plt.plot([0, 1], [0, 1], linestyle="--")
+            plt.xlabel("False Positive Rate")
+            plt.ylabel("True Positive Rate")
+            plt.title("ROC Curve")
+            plt.legend(loc="lower right")
+            plt.tight_layout()
+            plt.show()
+        except Exception as exc:
+            print(f"Could not compute ROC/AUC: {exc}")
+        return
+
+    if family in {"gamma", "negative_binomial"}:
+        required = {"dharma_scaled_residuals", "dharma_fitted_predicted"}
+        if not required.issubset(result.diagnostics):
+            print(
+                "No DHARMa simulated residuals available. "
+                "Fit with return_fitted=True or return_residuals=True and ensure DHARMa is installed in R."
+            )
+            return
+
+        sim_resid = pd.Series(result.diagnostics["dharma_scaled_residuals"]).dropna().astype(float)
+        fitted = pd.Series(result.diagnostics["dharma_fitted_predicted"]).dropna().astype(float)
+
+        n = min(len(sim_resid), len(fitted))
+        sim_resid = sim_resid.iloc[:n]
+        fitted = fitted.iloc[:n]
+
+        family_title = "Gamma" if family == "gamma" else "Negative Binomial"
+
+        rng = np.random.default_rng(random_state)
+        if n > max_scatter_points:
+            idx = rng.choice(n, size=max_scatter_points, replace=False)
+            sim_resid_scatter = sim_resid.iloc[idx]
+            fitted_scatter = fitted.iloc[idx]
+        else:
+            sim_resid_scatter = sim_resid
+            fitted_scatter = fitted
+
+        # For DHARMa, quantile bands are more useful than raw scatter
+        bq = _binned_quantiles(fitted, sim_resid, n_bins=n_bins, quantiles=(0.1, 0.25, 0.5, 0.75, 0.9))
+
+        fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
+
+        # --- Residuals vs fitted: hexbin + sample scatter + quantile bands
+        hb = axes[0].hexbin(
+            fitted,
+            sim_resid,
+            gridsize=55,
+            mincnt=1,
+            cmap="viridis",
+        )
+        fig.colorbar(hb, ax=axes[0], label="Count")
+
+        axes[0].scatter(
+            fitted_scatter,
+            sim_resid_scatter,
+            s=5,
+            alpha=0.03,
+            edgecolors="none",
+            rasterized=True,
+        )
+
+        axes[0].plot(bq["x_mid"], bq["q50"], linewidth=2, label="Median")
+        axes[0].plot(bq["x_mid"], bq["q25"], linestyle="--", linewidth=1.5, label="25th / 75th pct")
+        axes[0].plot(bq["x_mid"], bq["q75"], linestyle="--", linewidth=1.5)
+        axes[0].plot(bq["x_mid"], bq["q10"], linestyle=":", linewidth=1.3, label="10th / 90th pct")
+        axes[0].plot(bq["x_mid"], bq["q90"], linestyle=":", linewidth=1.3)
+
+        axes[0].axhline(0.5, color="red", linestyle="--", linewidth=1.2)
+        axes[0].axhline(0.25, color="gray", linestyle=":", linewidth=0.9, alpha=0.8)
+        axes[0].axhline(0.75, color="gray", linestyle=":", linewidth=0.9, alpha=0.8)
+        axes[0].set_ylim(-0.02, 1.02)
+        axes[0].set_title(f"{family_title} DHARMa Residuals vs Fitted")
+        axes[0].set_xlabel("Predicted values")
+        axes[0].set_ylabel("Scaled residuals")
+        axes[0].legend(frameon=True, loc="best")
+
+        # --- Histogram with uniform reference line
+        sns.histplot(sim_resid, kde=False, stat="density", bins=30, ax=axes[1])
+        axes[1].axhline(1.0, color="red", linestyle="--", linewidth=1.2, label="Uniform density")
+        axes[1].set_xlim(0, 1)
+        axes[1].set_title(f"Histogram of {family_title} DHARMa Residuals")
+        axes[1].set_xlabel("Scaled residual")
+        axes[1].set_ylabel("Density")
+        axes[1].legend(frameon=True)
+
+        # --- QQ plot against Uniform(0,1)
+        sm.qqplot(sim_resid, dist=stats.uniform, line="45", ax=axes[2])
+        axes[2].set_title(f"QQ Plot of {family_title} DHARMa Residuals")
+        axes[2].set_xlabel("Theoretical Quantiles")
+        axes[2].set_ylabel("Sample Quantiles")
+
+        plt.tight_layout()
+        plt.show()
+
+        dharma_tests = result.diagnostics.get("dharma_tests")
+        if dharma_tests:
+            print("DHARMa Tests")
+            for test_name, test_info in dharma_tests.items():
+                print(f"{test_name}: {test_info}")
+        return
+
+    print(f"No diagnostics plotting implemented for family={result.family!r}.")
 
 def fit_mixed_model(
     data: pd.DataFrame,
     formula: str,
     family: str = "gaussian",
+    offset: str = None,
     link: Optional[str] = None,
     categorical_cols: Optional[list[str]] = None,
     reference_levels: Optional[dict[str, str]] = None,
@@ -131,51 +374,6 @@ def fit_mixed_model(
     r_script_path: str | Path = "scripts/r/fit_mixed_model.R",
     r_executable: str = "Rscript",
 ) -> MixedModelResult:
-    
-    """
-    Fit a mixed-effects model in R via lme4/lmerTest and return structured output.
-
-    Parameters
-    ----------
-    data : pd.DataFrame
-        Input dataset.
-    formula : str
-        R-style model formula.
-    family : str
-        Supported: 'gaussian', 'binomial'
-    link : str | None
-        Binomial link, e.g. 'logit', 'probit', 'cloglog'.
-    categorical_cols : list[str] | None
-        Columns to coerce to factors in R.
-    reference_levels : dict[str, str] | None
-        Mapping from factor column to reference level.
-    return_confint : bool
-        Included in config for future extension.
-    return_random_effects_variance : bool
-        Whether to return variance component output from broom.mixed::tidy(..., effects="ran_pars").
-    return_random_effects : bool
-        Whether to return BLUPs / conditional modes from ranef(model).
-    return_random_effects_covariance : bool
-        Whether to return covariance matrices for random effects, exposed as a dict of DataFrames.
-    return_fitted : bool
-        Whether to return the first few fitted values in diagnostics.
-    return_residuals : bool
-        Whether to return the first few residuals in diagnostics.
-    keep_raw_summary : bool
-        Whether to return the plain-text R summary.
-    optimizer : str | None
-        Optional optimizer passed to lme4 control.
-    nAGQ : int
-        Number of adaptive Gauss-Hermite quadrature points for glmer.
-    r_script_path : str | Path
-        Path to the R backend script.
-    r_executable : str
-        Name or full path of the Rscript executable.
-
-    Returns
-    -------
-    MixedModelResult
-    """
 
     _validate_inputs(
         data=data,
@@ -187,6 +385,7 @@ def fit_mixed_model(
         nAGQ=nAGQ,
         r_script_path=r_script_path,
         r_executable=r_executable,
+        offset=offset,
     )
 
     categorical_cols = categorical_cols or []
@@ -205,6 +404,7 @@ def fit_mixed_model(
             "formula": formula,
             "family": family,
             "link": link,
+            "offset": offset,
             "engine": "lme4",
             "data_path": str(data_path.resolve()),
             "result_path": str(result_path.resolve()),
@@ -227,8 +427,8 @@ def fit_mixed_model(
         with open(config_path, "w", encoding="utf-8") as f:
             json.dump(config, f, indent=2)
 
-        print(f"Fitting mixed model with formula: {formula}, family: {family}, and optimizer: {optimizer}...")
-        time1 = time.time()
+        print(f"Fitting mixed model with formula: {formula}, family: {family}, optimizer: {optimizer}...")
+        start = time.time()
 
         completed = _run_r_backend(
             r_executable=r_executable,
@@ -236,8 +436,7 @@ def fit_mixed_model(
             config_path=config_path,
         )
 
-        time2 = time.time()
-        print(f"Seconds taken to fit mixed model: {round(time2 - time1, 2)}")
+        print(f"Seconds taken to fit mixed model: {round(time.time() - start, 2)}")
 
         if not result_path.exists():
             raise MixedModelError(
@@ -264,9 +463,7 @@ def fit_mixed_model(
             expected_cols=["effect", "term", "estimate", "std.error", "statistic", "p.value"],
         )
 
-        random_effects_variance_df = _records_to_df(
-            payload.get("random_effects_variance", []),
-        )
+        random_effects_variance_df = _records_to_df(payload.get("random_effects_variance", []))
 
         random_effects_df = _records_to_df(
             payload.get("random_effects", []),
@@ -278,16 +475,24 @@ def fit_mixed_model(
         covariance_matrices = _covariance_df_to_matrices(covariance_long_df)
 
         diagnostics = payload.get("diagnostics", {})
-        if "residuals" in diagnostics:
-            diagnostics["residuals"] = pd.Series(diagnostics["residuals"], name="residual")
-        if "fitted" in diagnostics:
-            diagnostics["fitted"] = pd.Series(diagnostics["fitted"], name="fitted")
+
+        for key in [
+            "residuals",
+            "fitted",
+            "predicted_prob",
+            "observed_response",
+            "dharma_scaled_residuals",
+            "dharma_fitted_predicted",
+        ]:
+            if key in diagnostics:
+                diagnostics[key] = pd.Series(diagnostics[key], name=key)
 
         return MixedModelResult(
             success=payload["success"],
             formula=payload["formula"],
             family=payload["family"],
             link=payload.get("link"),
+            offset=payload.get("offset"),
             engine=payload["engine"],
             n_input=payload["n_input"],
             n_written=payload.get("n_written", len(data.columns)),
@@ -324,6 +529,7 @@ def anova_mixed_models(
     r_script_path: str | Path = "scripts/r/fit_mixed_model.R",
     r_executable: str = "Rscript",
 ) -> MixedModelANOVAResult:
+
     _validate_inputs(
         data=data,
         formula=null_formula,
@@ -419,6 +625,7 @@ def anova_mixed_models(
         )
 
 
+
 def _validate_formula(formula: str) -> None:
     if not isinstance(formula, str) or "~" not in formula:
         raise ValueError("Formula must be a valid R-style formula string containing '~'.")
@@ -463,7 +670,6 @@ def _covariance_df_to_matrices(cov_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
         )
 
     matrices: dict[str, pd.DataFrame] = {}
-
     for group_name, sub_df in cov_df.groupby("group", dropna=False):
         terms = list(dict.fromkeys(sub_df["term1"].tolist() + sub_df["term2"].tolist()))
         mat = sub_df.pivot(index="term1", columns="term2", values="covariance")
@@ -483,20 +689,36 @@ def _validate_inputs(
     nAGQ: int,
     r_script_path: str | Path,
     r_executable: str,
+    offset: Optional[str],
 ) -> None:
-
     _validate_formula(formula)
 
-    allowed_families = {"gaussian", "binomial"}
+    allowed_families = {"gaussian", "binomial", "gamma", "negative_binomial"}
     if family not in allowed_families:
         raise ValueError(f"`family` must be one of {allowed_families}, got {family!r}.")
 
     allowed_binomial_links = {"logit", "probit", "cloglog", "cauchit", "log"}
+    allowed_gamma_links = {"inverse", "identity", "log"}
+
     if family == "gaussian" and link is not None:
         raise ValueError("For gaussian models, `link` must be None.")
-    if family == "binomial" and link is not None and link not in allowed_binomial_links:
+
+    if family == "binomial":
+        if link is not None and link not in allowed_binomial_links:
+            raise ValueError(
+                f"For binomial models, `link` must be one of {allowed_binomial_links}, got {link!r}."
+            )
+
+    if family == "gamma":
+        if link is not None and link not in allowed_gamma_links:
+            raise ValueError(
+                f"For gamma models, `link` must be one of {allowed_gamma_links}, got {link!r}."
+            )
+
+    if family == "negative_binomial" and link is not None:
         raise ValueError(
-            f"For binomial models, `link` must be one of {allowed_binomial_links}, got {link!r}."
+            "Negative binomial mixed models in this wrapper use lme4::glmer.nb(), "
+            "so `link` must be None."
         )
 
     categorical_cols = categorical_cols or []
@@ -515,12 +737,13 @@ def _validate_inputs(
         raise ValueError("`nAGQ` must be a nonnegative integer.")
 
     r_script_path = Path(r_script_path)
-
     if shutil.which(r_executable) is None:
         raise FileNotFoundError(f"Could not find R executable {r_executable!r} on PATH.")
-
     if not r_script_path.exists():
         raise FileNotFoundError(f"R script not found at: {r_script_path}")
+    
+    if offset is not None and offset not in data.columns:
+        raise ValueError(f"Offset column {offset!r} not found in dataframe!")
 
 
 def _run_r_backend(
