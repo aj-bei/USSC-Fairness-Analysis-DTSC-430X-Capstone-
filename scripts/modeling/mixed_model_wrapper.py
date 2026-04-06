@@ -356,7 +356,7 @@ def plot_diagnostics(
         sim_resid = sim_resid.iloc[:n]
         fitted = fitted.iloc[:n]
 
-        family_title = "Gamma" if family == "gamma" else "Negative Binomial"
+        family_title = "Gamma" if family == "gamma" else ("Negative Binomial" if family == "negative_binomial" else "Binomial")
 
         rng = np.random.default_rng(random_state)
         if n > max_scatter_points:
