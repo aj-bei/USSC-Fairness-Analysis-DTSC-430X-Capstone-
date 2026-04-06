@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import scipy.stats as stats
 import seaborn as sns
@@ -50,6 +51,9 @@ class MixedModelResult:
         else:
             print("No summary available.")
 
+    def save(self, path: str | Path) -> None:
+        save_mixed_model_result(self, path)
+
 
 @dataclass
 class MixedModelANOVAResult:
@@ -83,13 +87,150 @@ class MixedModelError(Exception):
     """Raised when the mixed model pipeline fails."""
 
 
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import statsmodels.api as sm
-from scipy import stats
-from sklearn.metrics import classification_report, roc_auc_score, roc_curve
+def _serialize_df(df: pd.DataFrame) -> dict[str, Any]:
+    return {
+        "columns": list(df.columns),
+        "records": df.to_dict(orient="records"),
+    }
+
+
+def _deserialize_df(obj: Any) -> pd.DataFrame:
+    if obj is None:
+        return pd.DataFrame()
+    if isinstance(obj, list):
+        return pd.DataFrame.from_records(obj)
+    if isinstance(obj, dict):
+        cols = obj.get("columns")
+        recs = obj.get("records", [])
+        df = pd.DataFrame.from_records(recs)
+        if cols is not None:
+            for c in cols:
+                if c not in df.columns:
+                    df[c] = pd.NA
+            df = df[cols]
+        return df
+    raise TypeError(f"Cannot deserialize DataFrame from type {type(obj)}")
+
+
+def _serialize_series_or_value(x: Any) -> Any:
+    if isinstance(x, pd.Series):
+        return {
+            "__kind__": "series",
+            "name": x.name,
+            "values": x.tolist(),
+        }
+    return x
+
+
+def _deserialize_series_or_value(x: Any) -> Any:
+    if isinstance(x, dict) and x.get("__kind__") == "series":
+        return pd.Series(x.get("values", []), name=x.get("name"))
+    return x
+
+
+def _serialize_covariance_matrices(
+    mats: dict[str, pd.DataFrame]
+) -> dict[str, dict[str, Any]]:
+    out = {}
+    for group, df in mats.items():
+        out[group] = _serialize_df(df)
+    return out
+
+
+def _deserialize_covariance_matrices(
+    obj: Any,
+) -> dict[str, pd.DataFrame]:
+    if obj is None:
+        return {}
+    out = {}
+    for group, df_obj in obj.items():
+        out[str(group)] = _deserialize_df(df_obj)
+    return out
+
+
+def mixed_model_result_to_payload(result: "MixedModelResult") -> dict[str, Any]:
+    return {
+        "success": result.success,
+        "formula": result.formula,
+        "family": result.family,
+        "link": result.link,
+        "offset": result.offset,
+        "engine": result.engine,
+        "n_input": result.n_input,
+        "n_written": result.n_written,
+        "n_used": result.n_used,
+        "n_dropped": result.n_dropped,
+        "converged": result.converged,
+        "singular": result.singular,
+        "fixed_effects": _serialize_df(result.fixed_effects),
+        "random_effects_variance": _serialize_df(result.random_effects_variance),
+        "random_effects": _serialize_df(result.random_effects),
+        "random_effects_covariance_matrices": _serialize_covariance_matrices(
+            result.random_effects_covariance_matrices
+        ),
+        "fit_statistics": result.fit_statistics,
+        "diagnostics": {
+            k: _serialize_series_or_value(v)
+            for k, v in result.diagnostics.items()
+        },
+        "warnings": result.warnings,
+        "errors": result.errors,
+        "raw_summary": result.raw_summary,
+        "stdout": result.stdout,
+        "stderr": result.stderr,
+        "config": result.config,
+    }
+
+
+def mixed_model_result_from_payload(payload: dict[str, Any]) -> "MixedModelResult":
+    diagnostics = {
+        k: _deserialize_series_or_value(v)
+        for k, v in payload.get("diagnostics", {}).items()
+    }
+
+    return MixedModelResult(
+        success=payload["success"],
+        formula=payload["formula"],
+        family=payload["family"],
+        link=payload.get("link"),
+        offset=payload.get("offset"),
+        engine=payload["engine"],
+        n_input=payload["n_input"],
+        n_written=payload["n_written"],
+        n_used=payload.get("n_used"),
+        n_dropped=payload.get("n_dropped"),
+        converged=payload.get("converged"),
+        singular=payload.get("singular"),
+        fixed_effects=_deserialize_df(payload.get("fixed_effects")),
+        random_effects_variance=_deserialize_df(payload.get("random_effects_variance")),
+        random_effects=_deserialize_df(payload.get("random_effects")),
+        random_effects_covariance_matrices=_deserialize_covariance_matrices(
+            payload.get("random_effects_covariance_matrices")
+        ),
+        fit_statistics=payload.get("fit_statistics", {}),
+        diagnostics=diagnostics,
+        warnings=payload.get("warnings", []),
+        errors=payload.get("errors", []),
+        raw_summary=payload.get("raw_summary"),
+        stdout=payload.get("stdout"),
+        stderr=payload.get("stderr"),
+        config=payload.get("config", {}),
+    )
+
+
+def save_mixed_model_result(result: "MixedModelResult", path: str | Path) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = mixed_model_result_to_payload(result)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, indent=2)
+
+
+def load_mixed_model_result(path: str | Path) -> "MixedModelResult":
+    path = Path(path)
+    with open(path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+    return mixed_model_result_from_payload(payload)
 
 
 def _binned_quantiles(
@@ -103,7 +244,6 @@ def _binned_quantiles(
     """
     df = pd.DataFrame({"x": x, "y": y}).dropna().copy()
 
-    # qcut can fail if many duplicate x values; duplicates='drop' handles that
     df["bin"] = pd.qcut(df["x"], q=n_bins, duplicates="drop")
 
     out = (
@@ -142,66 +282,6 @@ def plot_diagnostics(
             )
             return
 
-        # resid = pd.Series(result.diagnostics["residuals"]).dropna().astype(float)
-        # fitted = pd.Series(result.diagnostics["fitted"]).dropna().astype(float)
-
-        # n = min(len(resid), len(fitted))
-        # resid = resid.iloc[:n]
-        # fitted = fitted.iloc[:n]
-
-        # # subsample for visibility if needed
-        # rng = np.random.default_rng(random_state)
-        # if n > max_scatter_points:
-        #     idx = rng.choice(n, size=max_scatter_points, replace=False)
-        #     resid_scatter = resid.iloc[idx]
-        #     fitted_scatter = fitted.iloc[idx]
-        # else:
-        #     resid_scatter = resid
-        #     fitted_scatter = fitted
-
-        # bq = _binned_quantiles(fitted, resid, n_bins=n_bins, quantiles=(0.1, 0.5, 0.9))
-
-        # fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
-
-        # # --- Residuals vs fitted: hexbin + binned quantiles
-        # hb = axes[0].hexbin(
-        #     fitted,
-        #     resid,
-        #     gridsize=55,
-        #     mincnt=1,
-        #     cmap="viridis",
-        # )
-        # fig.colorbar(hb, ax=axes[0], label="Count")
-        # axes[0].scatter(
-        #     fitted_scatter,
-        #     resid_scatter,
-        #     s=6,
-        #     alpha=0.08,
-        #     edgecolors="none",
-        #     rasterized=True,
-        # )
-        # axes[0].plot(bq["x_mid"], bq["q50"], linewidth=2, label="Median residual")
-        # axes[0].plot(bq["x_mid"], bq["q10"], linestyle="--", linewidth=1.5, label="10th / 90th pct")
-        # axes[0].plot(bq["x_mid"], bq["q90"], linestyle="--", linewidth=1.5)
-        # axes[0].axhline(0, color="red", linestyle="--", linewidth=1.2)
-        # axes[0].set_title("Residuals vs Fitted")
-        # axes[0].set_xlabel("Fitted values")
-        # axes[0].set_ylabel("Residuals")
-        # axes[0].legend(frameon=True)
-
-        # # --- Histogram
-        # sns.histplot(resid, kde=True, ax=axes[1], bins=50, stat="density")
-        # axes[1].set_title("Histogram of Residuals")
-        # axes[1].set_xlabel("Residual value")
-
-        # # --- QQ plot
-        # sm.qqplot(resid, line="45", ax=axes[2])
-        # axes[2].set_title("QQ Plot of Residuals")
-
-        # plt.tight_layout()
-        # plt.show()
-        # return
-
         resid = result.diagnostics["residuals"]
         fitted = result.diagnostics["fitted"]
 
@@ -222,7 +302,8 @@ def plot_diagnostics(
 
         plt.tight_layout()
         plt.show()
-  
+        return
+
     if family == "binomial":
         required = {"predicted_prob", "observed_response"}
         if not required.issubset(result.diagnostics):
@@ -258,9 +339,8 @@ def plot_diagnostics(
             plt.show()
         except Exception as exc:
             print(f"Could not compute ROC/AUC: {exc}")
-        return
 
-    if family in {"gamma", "negative_binomial"}:
+    if family in {"gamma", "negative_binomial", "binomial"}:
         required = {"dharma_scaled_residuals", "dharma_fitted_predicted"}
         if not required.issubset(result.diagnostics):
             print(
@@ -287,12 +367,10 @@ def plot_diagnostics(
             sim_resid_scatter = sim_resid
             fitted_scatter = fitted
 
-        # For DHARMa, quantile bands are more useful than raw scatter
         bq = _binned_quantiles(fitted, sim_resid, n_bins=n_bins, quantiles=(0.1, 0.25, 0.5, 0.75, 0.9))
 
         fig, axes = plt.subplots(1, 3, figsize=(18, 5.5))
 
-        # --- Residuals vs fitted: hexbin + sample scatter + quantile bands
         hb = axes[0].hexbin(
             fitted,
             sim_resid,
@@ -326,7 +404,6 @@ def plot_diagnostics(
         axes[0].set_ylabel("Scaled residuals")
         axes[0].legend(frameon=True, loc="best")
 
-        # --- Histogram with uniform reference line
         sns.histplot(sim_resid, kde=False, stat="density", bins=30, ax=axes[1])
         axes[1].axhline(1.0, color="red", linestyle="--", linewidth=1.2, label="Uniform density")
         axes[1].set_xlim(0, 1)
@@ -335,7 +412,6 @@ def plot_diagnostics(
         axes[1].set_ylabel("Density")
         axes[1].legend(frameon=True)
 
-        # --- QQ plot against Uniform(0,1)
         sm.qqplot(sim_resid, dist=stats.uniform, line="45", ax=axes[2])
         axes[2].set_title(f"QQ Plot of {family_title} DHARMa Residuals")
         axes[2].set_xlabel("Theoretical Quantiles")
@@ -353,6 +429,7 @@ def plot_diagnostics(
 
     print(f"No diagnostics plotting implemented for family={result.family!r}.")
 
+
 def fit_mixed_model(
     data: pd.DataFrame,
     formula: str,
@@ -369,10 +446,12 @@ def fit_mixed_model(
     return_residuals: bool = False,
     keep_raw_summary: bool = True,
     optimizer: Optional[str] = None,
+    n_iter: int = None,
     nAGQ: int = 1,
     reml: bool = True,
     r_script_path: str | Path = "scripts/r/fit_mixed_model.R",
     r_executable: str = "Rscript",
+    save_result_path: Optional[str | Path] = None,
 ) -> MixedModelResult:
 
     _validate_inputs(
@@ -418,6 +497,7 @@ def fit_mixed_model(
             "return_residuals": return_residuals,
             "keep_raw_summary": keep_raw_summary,
             "optimizer": optimizer,
+            "n_iter": n_iter,
             "nAGQ": nAGQ,
             "n_input": int(len(data)),
             "n_written": int(len(data.columns)),
@@ -487,7 +567,7 @@ def fit_mixed_model(
             if key in diagnostics:
                 diagnostics[key] = pd.Series(diagnostics[key], name=key)
 
-        return MixedModelResult(
+        result = MixedModelResult(
             success=payload["success"],
             formula=payload["formula"],
             family=payload["family"],
@@ -513,6 +593,11 @@ def fit_mixed_model(
             stderr=completed.stderr,
             config=config,
         )
+
+        if save_result_path is not None:
+            save_mixed_model_result(result, save_result_path)
+
+        return result
 
 
 def anova_mixed_models(
@@ -540,6 +625,7 @@ def anova_mixed_models(
         nAGQ=nAGQ,
         r_script_path=r_script_path,
         r_executable=r_executable,
+        offset=None,
     )
     _validate_formula(alt_formula)
     _validate_test_type(test_type=test_type, family=family)
@@ -610,6 +696,7 @@ def anova_mixed_models(
             formula_alt=payload["formula_alt"],
             family=payload["family"],
             link=payload.get("link"),
+            offset=payload.get("offset"),
             test_type=payload.get("test_type", test_type.lower()),
             reml_used=payload.get("reml_used"),
             model_null_fit=payload.get("model_null_fit", {}),
@@ -623,7 +710,6 @@ def anova_mixed_models(
             stderr=completed.stderr,
             config=config,
         )
-
 
 
 def _validate_formula(formula: str) -> None:
@@ -741,7 +827,7 @@ def _validate_inputs(
         raise FileNotFoundError(f"Could not find R executable {r_executable!r} on PATH.")
     if not r_script_path.exists():
         raise FileNotFoundError(f"R script not found at: {r_script_path}")
-    
+
     if offset is not None and offset not in data.columns:
         raise ValueError(f"Offset column {offset!r} not found in dataframe!")
 

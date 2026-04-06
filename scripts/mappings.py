@@ -646,7 +646,7 @@ USSC_MAP = {
     "NUMDEPEN":{
       "97": "Unspecified No. of Dependents" 
     },
-    "OBST":{},
+    "OBSTRCHI":{},
     "OFFGUIDE":{
       "1": "Administration of Justice",
       "2": "Antitrust",
@@ -713,7 +713,7 @@ USSC_MAP = {
       "34": "Food and Drug Offenses",
       "35": "Traffic Violations and Other Offenses (Includes Other Drug, Environmental, Firearms, Miscellaneous Property Crimes, Violent, Traffic offenses, Obscenity, and Prostitution) (Includes OFFTYPE2= 43,44)"
     },
-    "OFFV":{},
+    "OFFVCTHI":{},
     "PRESENT":{
       "1": "In Custody",
       "2": "Bail/Bond",
@@ -1157,10 +1157,10 @@ USSC_MAP = {
     "NEWRACE": "RACE",  # the race of the offender
     "NOCOUNTS": "NUM_COUNTS",  # the number of counts of conviction for the offender
     "NUMDEPEN": "NUM_DEPENDENTS",  # the number of dependents the offender had at the time of sentencing
-    "OBST": "OBSTR_JUS_ADJ",  # guideline adjustment to offense level for obstruction of justice
+    "OBSTRCHI": "OBSTR_JUS_ADJ",  # guideline adjustment to offense level for obstruction of justice
     "OFFGUIDE": "OFF_TYPE_2018_PRSNT",  # offense type (the mappings of offense types was changed after FY2017, so there are two separate columns for offense type for the two time periods)
     "OFFTYPSB": "OFF_TYPE_2010_2017",  # offense type
-    "OFFV": "LAW_ENFMT_VCTM_ADJ",  # guideline adjustment to offense level for being a law enforcement victim
+    "OFFVCTHI": "LAW_ENFMT_VCTM_ADJ",  # guideline adjustment to offense level for being a law enforcement victim
     "PRESENT": "DETENT_ST",  # the offender's status at the time of sentencing (in custody, on bail, released on own recognizance, or other)
     "PRISDUM": "RECIEVED_PRSN_FLAG",  # whether the offender received a prison sentence (sentences of home detention only or probation only would be classified as 0).
     "PROBATN": "MNTHS_PROBAT",  # the number of months of probation ordered by the court

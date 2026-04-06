@@ -8,3 +8,4 @@ data/*
 .venv/
 scripts/__pycache__/
 scripts/modeling/__pycache__/*
+scripts/models/*

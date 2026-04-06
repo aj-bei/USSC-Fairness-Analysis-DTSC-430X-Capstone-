@@ -73,18 +73,18 @@ df_to_records <- function(df) {
   records
 }
 
-build_control <- function(family_name, optimizer) {
+build_control <- function(family_name, optimizer, n_iter) {
   if (family_name == "gaussian") {
     if (!is.null(optimizer) && !is.na(optimizer) && optimizer != "") {
-      return(lmerControl(optimizer = optimizer))
+      return(lmerControl(optimizer = optimizer, optCtrl = list(maxfun = n_iter)))
     }
-    return(lmerControl())
+    return(lmerControl(optCtrl = list(maxfun = n_iter)))
   }
 
   if (!is.null(optimizer) && !is.na(optimizer) && optimizer != "") {
-    return(glmerControl(optimizer = optimizer))
+    return(glmerControl(optimizer = optimizer, optCtrl = list(maxfun = n_iter)))
   }
-  return(glmerControl())
+  return(glmerControl(optCtrl = list(maxfun = n_iter)))
 }
 
 make_binomial_family <- function(link_name) {
@@ -139,9 +139,9 @@ coerce_model_data <- function(data, categorical_cols, reference_levels) {
   data
 }
 
-fit_model_from_formula <- function(formula_str, data, family_name, link_name, optimizer, nAGQ, reml, offset) {
+fit_model_from_formula <- function(formula_str, data, family_name, link_name, optimizer, n_iter, nAGQ, reml, offset) {
   fml <- as.formula(formula_str)
-  ctrl <- build_control(family_name, optimizer)
+  ctrl <- build_control(family_name, optimizer, n_iter)
 
   if (family_name == "gaussian") {
     if (requireNamespace("lmerTest", quietly = TRUE)) {
@@ -482,6 +482,7 @@ run_fit_mode <- function(config) {
           family_name = config$family,
           link_name = config$link,
           optimizer = config$optimizer,
+          n_iter = config$n_iter,
           nAGQ = config$nAGQ,
           reml = config$reml,
           offset = config$offset
@@ -545,7 +546,7 @@ run_fit_mode <- function(config) {
           }
         }
 
-        if (config$family %in% c("gamma", "negative_binomial")) {
+        if (config$family %in% c("gamma", "negative_binomial", "binomial")) {
           if (isTRUE(config$return_fitted) || isTRUE(config$return_residuals)) {
             dharma_diag <- extract_dharma_diagnostics(model)
             result$diagnostics <- c(result$diagnostics, dharma_diag)
@@ -630,6 +631,7 @@ run_anova_mode <- function(config) {
           family_name = config$family,
           link_name = config$link,
           optimizer = config$optimizer,
+          n_iter = config$n_iter,
           nAGQ = config$nAGQ,
           reml = reml_to_use,
           offset = config$offset
@@ -641,6 +643,7 @@ run_anova_mode <- function(config) {
           family_name = config$family,
           link_name = config$link,
           optimizer = config$optimizer,
+          n_iter = config$n_iter,
           nAGQ = config$nAGQ,
           reml = reml_to_use,
           offset = config$offset
