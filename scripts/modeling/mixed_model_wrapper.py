@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -429,6 +430,7 @@ def plot_diagnostics(
 
     print(f"No diagnostics plotting implemented for family={result.family!r}.")
 
+print(os.path.join(os.getcwd(), "scripts", "r", "fit_mixed_model.R"))
 
 def fit_mixed_model(
     data: pd.DataFrame,
@@ -440,17 +442,17 @@ def fit_mixed_model(
     reference_levels: Optional[dict[str, str]] = None,
     return_confint: bool = False,
     return_random_effects_variance: bool = True,
-    return_random_effects: bool = False,
-    return_random_effects_covariance: bool = False,
-    return_fitted: bool = False,
-    return_residuals: bool = False,
+    return_random_effects: bool = True,
+    return_random_effects_covariance: bool = True,
+    return_fitted: bool = True,
+    return_residuals: bool = True,
     keep_raw_summary: bool = True,
     optimizer: Optional[str] = None,
-    n_iter: int = None,
+    n_iter: int = 10_000,
     nAGQ: int = 1,
     reml: bool = True,
     r_script_path: str | Path = "scripts/r/fit_mixed_model.R",
-    r_executable: str = "Rscript",
+    r_executable: str = "c:\\Program Files\\R\\R-4.5.2\\bin\\Rscript.exe",
     save_result_path: Optional[str | Path] = None,
 ) -> MixedModelResult:
 
