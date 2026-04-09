@@ -430,8 +430,6 @@ def plot_diagnostics(
 
     print(f"No diagnostics plotting implemented for family={result.family!r}.")
 
-print(os.path.join(os.getcwd(), "scripts", "r", "fit_mixed_model.R"))
-
 def fit_mixed_model(
     data: pd.DataFrame,
     formula: str,
@@ -860,3 +858,7 @@ def _run_r_backend(
         )
 
     return completed
+
+
+def fit_mixed_model_parallel(kwargs):
+    return fit_mixed_model(**kwargs)
