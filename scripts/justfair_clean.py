@@ -106,4 +106,124 @@ justfair_df["SENT_DATE"] = pd.to_datetime(
 justfair_df["APPOINTING_PARTY"] = justfair_df.apply(get_party_for_spell, axis=1)
 justfair_df = justfair_df.drop(columns=sum([[f"COMMISSIONDATE{i}", f"TERMINATIONDATE{i}", f"PARTYOFAPPOINTINGPRESIDENT{i}"] for i in range(1, 7)], []))
 justfair_df = justfair_df.drop(columns=["SENT_DATE", "FISCALYR"])
+
+
+# some judge information is missing, so we used wikipedia search to fill in these values manually
+appointing_party_map = {
+    'Susan Pamela Watters': 'Democratic',
+    'Pamela Pepper': 'Democratic',
+    'Daniel Dale Crabtree': 'Democratic',
+    'Darrin Phillip Gayles': 'Democratic',
+    'Rosemary MÃ¡rquez': 'Democratic',
+    'Robert William """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""Trey"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""" Schroeder': 'Democratic',
+    'Mary Hannah Lauck': 'Democratic',
+    'Timothy Lloyd Brooks': 'Democratic',
+    'Linda Vivienne Parker': 'Democratic',
+    'Nancy Jo Rosenstenge': 'Democratic',
+    'Sheryl H  Lipman': 'Democratic',
+    'Amos Louis Mazzant': 'Democratic',
+    'Leigh Martin May': 'Democratic',
+    'Staci Michelle Yandle': 'Democratic',
+    'Eleanor Louise Ross': 'Democratic',
+    'Douglas Leroy Rayes': 'Democratic',
+    'Matthew Frederick Leitman': 'Democratic',
+    'Laurie Jill Michelson': 'Democratic',
+    'Stephen Rogers Bough': 'Democratic',
+    'Stanley Allen Bastian': 'Democratic',
+    'Loretta Copeland Biggs': 'Democratic',
+    'Ronnie Lee White': 'Democratic',
+    'Robin Lee Rosenberg': 'Democratic',
+    'Mark Howard Cohen': 'Democratic',
+    'Wendy Beetlestone': 'Democratic',
+    'Mark Gerald Mastroianni': 'Democratic',
+    'George Jarrod Hazel': 'Democratic',
+    'Steven Paul Logan': 'Democratic',
+    'Madeline Elizabeth Cox Arleo': 'Democratic',
+    'Gregory Neil Stivers': 'Democratic',
+    'Gerald John """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""Jerry"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""" Pappert': 'Democratic',
+    'Dale Alan Drozd': 'Democratic',
+    'Travis Randall McDonough': 'Democratic',
+    'Lawrence Joseph Vilardo': 'Democratic',
+    'Leonard Terry Strand': 'Democratic',
+    'Rebecca Goodgame Ebinger': 'Democratic',
+    'Paula Xinis': 'Democratic',
+    'Scott Lawrence Palk': 'Republican',
+    'Donald Cecil Coggins': 'Republican',
+    'Alan D Albright': 'Republican',
+    'Terry Fitzgerald Moorer': 'Republican',
+    '""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""C  J """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""" Williams': 'Republican',
+    'Thomas Shawn Kleeh': 'Republican',
+    'Barry Weldon Ashe': 'Republican',
+    'James Patrick """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""J  P """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""" Hanlon': 'Republican',
+    'Robert Earl Wier': 'Republican',
+    'Jeremy Daniel Kernodle': 'Republican',
+    'James Russell Sweeney': 'Republican',
+    'Liles Clifton Burke': 'Republican',
+    'Susan Marie Brnovich': 'Republican',
+    'William Frederic Jung': 'Republican',
+    'Theodore David Chuang': 'Democratic',
+    'Mark A  Kearney': 'Democratic',
+    'Nancy Jo Rosenstengel': 'Democratic',
+    'James Donald Peterson': 'Democratic',
+    'Pamela Lynn Reeves': 'Democratic',
+    'Paul Gregory Byron': 'Democratic',
+    'James Alan Soto': 'Democratic',
+    'Joseph F  Leeson': 'Democratic',
+    'Edward George Smith': 'Democratic',
+    'Jon David Levy': 'Democratic',
+    'Amit Priyavadan Mehta': 'Democratic',
+    'Joan Marie Azrack': 'Democratic',
+    'Diane Joyce Humetewa': 'Democratic',
+    'Elizabeth Kay Dillon': 'Democratic',
+    'Randolph Daniel Moss': 'Democratic',
+    'Gary Allen Feess': 'Democratic',
+    'Ann Marie Donnelly': 'Democratic',
+    'Robert Francis Rossiter': 'Democratic',
+    'Holly Lou Teeter': 'Republican'
+}
+
+missing_race_sex_party_map = {
+    'Amy Mil Totenberg': ['White', 'Female', 'Democratic'],
+    'Analisa Nadine Torres': ['White', 'Hispanic', 'Democratic'],
+    'Ann Louise Aiken': ['White', 'Female', 'Democratic'],
+    'Avern Levin Cohn': ['White', 'Male', 'Democratic'],
+    'Beth Bloom Stern': ['White', 'Female', 'Democratic'],
+    'Brian Theadore """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""Ted"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""" Stewart': ['White', 'Male', 'Democratic'],
+    'Callie Virginia Smith """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""Ginny"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""" Granade': ['White', 'Female', 'Republican'],
+    'Christina Clair Reiss': ['White', 'Female', 'Democratic'],
+    'Clyde Roger Vinson': ['White', 'Male', 'Republican'],
+    'Colleen Kollar Kotelly': ['White', 'Female', 'Democratic'],
+    'Daniel T  K  Hurley': ['White', 'Male', 'Democratic'],
+    'David Ogden Nuffer': ['White', 'Male', 'Democratic'],
+    'Dee Vance Benson': ['White', 'Male', 'Democratic'],
+    'Gene Ellen Kreyche Pratter': ['White', 'Female', 'Republican'],
+    'Gerald John """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""Jerry"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""" Pappert': ['White', 'Male', 'Democratic'],
+    'Gregory Frederick Van Tatenhove': ['White', 'Male', 'Republican'],
+    'Ivan L  R  Lemelle': ['Black', 'Male', 'Democratic'],
+    'Jane Elizabeth Magnus Stinson': ['White', 'Female', 'Democratic'],
+    'Jeffrey Uhlman Beaverstock': ['White', 'Male', 'Republican'],
+    'Jon Ernest DeGuilio': ['White', 'Male', 'Democratic'],
+    'Laurie Smith Camp': ['White', 'Female', 'Republican'],
+    'Leslie Joyce Abrams': ['Black', 'Female', 'Democratic'],
+    'Martha Alicia VÃ¡zquez': ["Hispanic", 'Female', 'Democratic'],
+    'Martin Leach Cross Feldman': ['White', 'Male', 'Republican'],
+    'Nitza Ileana QuiÃ±ones Alejandro': ['Hispanic', 'Female', 'Democratic'],
+    'Patricia Minaldi': ['White', 'Female', 'Republican'],
+    'Ronald Sing Wai Lew': ['Other', 'Male', 'Republican'],
+    'Stewart Richard Dalzell': ['White', 'Male', 'Republican'],
+    'Susan Yvonne Illston': ['White', 'Female', 'Democratic'],
+    'Thomas E  Stagg': ['White', 'Male', 'Republican'],
+    'Vince Girdhari Chhabria': ['White', 'Male', 'Democratic'],
+}
+
+# apply the missing race, sex, and party values to the justfair_df
+for judge, (race, sex, party) in missing_race_sex_party_map.items():
+    justfair_df.loc[justfair_df["JUDGE_NAME"] == judge, "JUDGE_RACE"] = race
+    justfair_df.loc[justfair_df["JUDGE_NAME"] == judge, "JUDGE_SEX"] = sex
+    justfair_df.loc[justfair_df["JUDGE_NAME"] == judge, "APPOINTING_PARTY"] = party
+
+# apply the missing appointing party values to the justfair_df
+for judge, party in appointing_party_map.items():
+    justfair_df.loc[justfair_df["JUDGE_NAME"] == judge, "APPOINTING_PARTY"] = party
+
 justfair_df.to_csv(os.path.join(data_path, "JUSTFAIR_clean.csv"), index=False)
