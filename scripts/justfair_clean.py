@@ -222,7 +222,7 @@ appointing_party_map = {
 
 missing_race_sex_party_map = {
     'Amy Mil Totenberg': ['White', 'Female', 'Democratic'],
-    'Analisa Nadine Torres': ['White', 'Hispanic', 'Democratic'],
+    'Analisa Nadine Torres': ['Hispanic', 'Female', 'Democratic'],
     'Ann Louise Aiken': ['White', 'Female', 'Democratic'],
     'Avern Levin Cohn': ['White', 'Male', 'Democratic'],
     'Beth Bloom Stern': ['White', 'Female', 'Democratic'],
