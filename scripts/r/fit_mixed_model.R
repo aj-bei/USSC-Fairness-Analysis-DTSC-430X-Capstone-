@@ -4,6 +4,7 @@ suppressPackageStartupMessages({
   library(jsonlite)
   library(lme4)
   library(broom.mixed)
+  library(performance)
 })
 
 Sys.setenv(
@@ -520,6 +521,16 @@ run_fit_mode <- function(config) {
         }
 
         result$fit_statistics <- extract_fit_stats(model)
+
+        # add nakagawa r2 if possible
+        r2 <- r2_nakagawa <- tryCatch(
+          performance::r2_nakagawa(model), error = function(e) NULL
+        )
+
+        if (!is.null(r2)) {
+          result$fit_statistics$r2_marginal <- r2$R2_marginal
+          result$fit_statistics$r2_conditional <- r2$R2_conditional
+        }
 
         diag_out <- extract_diagnostics(model)
         result$diagnostics <- diag_out
